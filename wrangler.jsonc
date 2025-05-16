@@ -1,0 +1,19 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cloudflare-scrapyard",
+	"main": "./worker.ts",
+	"compatibility_date": "2025-05-08",
+	"kv_namespaces": [
+		{
+			"binding": "scraps",
+			"id": "59c5662b9ed74e1086211e15b2db4b7a"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}
