@@ -13,6 +13,12 @@
 			"id": "59c5662b9ed74e1086211e15b2db4b7a"
 		}
 	],
+	"routes": [
+		{
+			"pattern": "scraps.oseg.dev",
+			"custom_domain": true
+		}
+	],
 	"observability": {
 		"enabled": true
 	}
