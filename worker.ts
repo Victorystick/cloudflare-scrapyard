@@ -4,7 +4,7 @@ const index = `<!doctype html>
 <html>
 <head>
   <title>Scrapyard</title>
-  <style>code { background: #f0f0f0; padding: 2px 4px; border-radius: 4px; }</style>
+  <style>code, pre { background: #f0f0f0; padding: 2px 4px; border-radius: 4px; }</style>
 </head>
 <body>
   A scrapyard for <a href="https://scrapscript.org">Scrapscript</a>.
@@ -12,6 +12,13 @@ const index = `<!doctype html>
   <h2>GET /$sha256</h2>
   <p>Retrieve a scrap by its SHA-256 hash.</p>
   <p>If requested via <code>Accept: application/scrap</code> such will be its response type, otherwise <code>text/plain</code>.</p>
+
+  <h3>Example</h3>
+  <p><a href="/5784ceb93d8e863632b123fbf082ba217525464b85893b564cdf94e2811a0166">This scrap</a>
+  from the <a href="https://scrapscript.org">Scrapscript</a> website (simplified) can be
+  <a href="https://github.com/Victorystick/scrapscript">evaluated</a> like so:</p>
+  <pre>$ echo '$sha256~~5784ceb93d8e863632b123fbf082ba217525464b85893b564cdf94e2811a0166' | scrap eval
+"hi aaaron"</pre>
 
   <h2>POST /</h2>
   <p>Stores a scrap passed in the request body, returning its SHA-256 hash.</p>
