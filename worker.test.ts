@@ -7,7 +7,7 @@ import {
   beforeAll,
 } from 'vitest';
 import { Miniflare } from 'miniflare';
-import { toSha256String } from './worker.ts';
+import { toSha256String } from './sha256.ts';
 import { spawnSync } from 'node:child_process';
 
 describe('worker', () => {
