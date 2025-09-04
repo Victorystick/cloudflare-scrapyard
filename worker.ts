@@ -1,7 +1,8 @@
-
 export async function toSha256String(data: ArrayBuffer): Promise<string> {
-  const buffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, "0")).join("");
+  const buffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buffer), (b) =>
+    b.toString(16).padStart(2, '0')
+  ).join('');
 }
 
 export function isSha256String(hash: string): boolean {
@@ -17,9 +18,20 @@ export function isSha256String(hash: string): boolean {
 
 const index = `<!doctype html>
 <html>
-<head><title>Scrapyard</title></head>
+<head>
+  <title>Scrapyard</title>
+  <style>code { background: #f0f0f0; padding: 2px 4px; border-radius: 4px; }</style>
+</head>
 <body>
   A scrapyard for <a href="https://scrapscript.org">Scrapscript</a>.
+
+  <h2>GET /$sha256</h2>
+  <p>Retrieve a scrap by its SHA-256 hash.</p>
+  <p>If requested via <code>Accept: application/scrap</code> such will be its response type, otherwise <code>text/plain</code>.</p>
+
+  <h2>POST /</h2>
+  <p>Stores a scrap passed in the request body, returning its SHA-256 hash.</p>
+  <p>Uploads will only be accepted if sent with the <code>Content-Type: application/scrap</code> header.</p>
 </body>
 </html>`;
 
@@ -56,13 +68,18 @@ export default {
             return new Response('No scrap with sha256:' + key, { status: 404 });
           }
 
-          const contentType = 'application/scrap';
+          const requestedScraps = request.headers
+            .get('Accept')
+            ?.split(',')
+            .includes('application/scrap');
 
           return new Response(stream, {
             status: 200,
             headers: {
-              'Content-Type': contentType,
-            }
+              'Content-Type': requestedScraps
+                ? 'application/scrap'
+                : 'text/plain',
+            },
           });
         }
       }
