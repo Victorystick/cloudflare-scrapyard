@@ -1,36 +1,10 @@
 import { isSha256String, toSha256String } from './sha256.ts';
 
-const index = `<!doctype html>
-<html>
-<head>
-  <title>Scrapyard</title>
-  <style>code, pre { background: #f0f0f0; padding: 2px 4px; border-radius: 4px; }</style>
-</head>
-<body>
-  A scrapyard for <a href="https://scrapscript.org">Scrapscript</a>.
-
-  <h2>GET /$sha256</h2>
-  <p>Retrieve a scrap by its SHA-256 hash.</p>
-  <p>If requested via <code>Accept: application/scrap</code> such will be its response type, otherwise <code>text/plain</code>.</p>
-
-  <h3>Example</h3>
-  <p><a href="/71d9fe524fc0ab11b9ee6e6cfa3bc3d410a4c1b3884bc1b0256c51699730b1eb">This scrap</a>,
-  adapted from the <a href="https://scrapscript.org">Scrapscript</a> website, greets tagged data.
-  Pipe a value into it and <a href="https://github.com/Victorystick/scrapscript">evaluate</a> it like so:</p>
-  <pre>$ echo '#friend { name = "aaron", times = 2 } |> $source:71d9fe524fc0ab11b9ee6e6cfa3bc3d410a4c1b3884bc1b0256c51699730b1eb' | scrap eval
-"yo aaron, yo aaron"</pre>
-
-  <h2>POST /</h2>
-  <p>Stores a scrap passed in the request body, returning its SHA-256 hash.</p>
-  <p>Uploads will only be accepted if sent with the <code>Content-Type: application/scrap</code> header.</p>
-</body>
-</html>`;
-
 export default {
   async fetch(request, env): Promise<Response> {
     const pathname = new URL(request.url).pathname;
     if (request.method === 'GET' && pathname === '/') {
-      return new Response(index, { headers: { 'Content-Type': 'text/html' } });
+      return env.ASSETS.fetch(request);
     }
 
     try {

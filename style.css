@@ -1,0 +1,34 @@
+/* Each section sits on a card over a tinted page. */
+:root {
+  --bg: #f4f3ef; --card: #ffffff; --fg: #22211e; --muted: #6b6960; --line: #e2e0d8;
+  --code-bg: #f7f6f2; --link: #2f7d4f; --accent: #2f7d4f;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412; --card: #1c1c1a; --fg: #ebe9e3; --muted: #a3a097; --line: #2d2c29;
+    --code-bg: #232320; --link: #6cc58f; --accent: #6cc58f;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto; max-width: 46rem; padding: 3rem 1rem 4rem;
+  background: var(--bg); color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--link); text-underline-offset: 2px; }
+header { padding: 0 .25rem 1.5rem; }
+h1 { font-size: 2.25rem; margin: 0 0 .25rem; letter-spacing: -.02em; }
+header p { color: var(--muted); margin: 0; }
+section {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+}
+h2 { font-size: 1.15rem; margin: 0 0 .5rem; }
+h3 { font-size: 1rem; margin: 1.25rem 0 .25rem; }
+.method { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); margin-right: .25rem; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em; }
+:not(pre) > code { background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+h2 code { background: none; padding: 0; font-size: 1em; }
+pre { background: var(--code-bg); border: 1px solid var(--line); padding: .9rem 1rem; border-radius: 6px; overflow-x: auto; line-height: 1.5; margin-bottom: 0; }
+samp { color: var(--muted); }
