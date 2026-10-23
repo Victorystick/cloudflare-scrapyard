@@ -14,11 +14,11 @@ const index = `<!doctype html>
   <p>If requested via <code>Accept: application/scrap</code> such will be its response type, otherwise <code>text/plain</code>.</p>
 
   <h3>Example</h3>
-  <p><a href="/5784ceb93d8e863632b123fbf082ba217525464b85893b564cdf94e2811a0166">This scrap</a>
-  from the <a href="https://scrapscript.org">Scrapscript</a> website (simplified) can be
-  <a href="https://github.com/Victorystick/scrapscript">evaluated</a> like so:</p>
-  <pre>$ echo '$sha256~~5784ceb93d8e863632b123fbf082ba217525464b85893b564cdf94e2811a0166' | scrap eval
-"hi aaaron"</pre>
+  <p><a href="/71d9fe524fc0ab11b9ee6e6cfa3bc3d410a4c1b3884bc1b0256c51699730b1eb">This scrap</a>,
+  adapted from the <a href="https://scrapscript.org">Scrapscript</a> website, greets tagged data.
+  Pipe a value into it and <a href="https://github.com/Victorystick/scrapscript">evaluate</a> it like so:</p>
+  <pre>$ echo '#friend { name = "aaron", times = 2 } |> $source:71d9fe524fc0ab11b9ee6e6cfa3bc3d410a4c1b3884bc1b0256c51699730b1eb' | scrap eval
+"yo aaron, yo aaron"</pre>
 
   <h2>POST /</h2>
   <p>Stores a scrap passed in the request body, returning its SHA-256 hash.</p>
