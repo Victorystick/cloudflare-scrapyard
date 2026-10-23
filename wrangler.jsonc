@@ -7,6 +7,11 @@
 	"name": "cloudflare-scrapyard",
 	"main": "./worker.ts",
 	"compatibility_date": "2025-05-08",
+	"assets": {
+		"binding": "ASSETS",
+		// POST / stores a scrap, so / must reach the Worker before the asset router.
+		"run_worker_first": ["/"]
+	},
 	"kv_namespaces": [
 		{
 			"binding": "scraps",
