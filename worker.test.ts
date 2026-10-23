@@ -23,7 +23,7 @@ describe('worker', () => {
   beforeEach(async () => {
     worker = new Miniflare({
       modules: [
-        { type: 'ESModule', path: './dist/cloudflare_scrapyard/worker.js' },
+        { type: 'ESModule', path: './dist/cloudflare_scrapyard/index.js' },
       ],
       kvNamespaces: ['scraps'],
     });
