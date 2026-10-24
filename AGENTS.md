@@ -21,7 +21,13 @@ serves https://scraps.oseg.dev.
   `go.mod` pins, so building needs Go. Bump it with
   `go get -tool github.com/Victorystick/scrapscript/cmd/scrap-check@<commit>`.
   `checker.ts` runs it, with just enough of WASI for Go.
-- Everything else is a static asset (`index.html`, `style.css`), built by
-  the Cloudflare Vite plugin.
+- Everything else is a static asset (`index.html`, `tutorial.html`,
+  `style.css`), built by the Cloudflare Vite plugin. A new page must be
+  listed in `vite.config.ts`.
+- `tutorial.html` teaches the language as the pinned `scrap` CLI implements
+  it, which lags SPEC.md (no `/` or `==` yet, for instance). Each
+  `.example` is a scrap with what `scrap eval` and `scrap type` print, and
+  `tutorial.test.ts` runs them all with the CLI at the version `go.mod`
+  pins: write an example, then paste in what the CLI prints.
 - `npm run dev` serves locally, `npm test` builds and tests, and
   `npx wrangler types` generates `worker-configuration.d.ts`.

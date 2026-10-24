@@ -32,3 +32,21 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-si
 h2 code { background: none; padding: 0; font-size: 1em; }
 pre { background: var(--code-bg); border: 1px solid var(--line); padding: .9rem 1rem; border-radius: 6px; overflow-x: auto; line-height: 1.5; margin-bottom: 0; }
 samp { color: var(--muted); }
+
+/* The tutorial: a contents card, and examples with what running them prints. */
+nav { margin-bottom: 1rem; font-size: .9rem; }
+.contents ol { margin: 0; padding-left: 1.5rem; columns: 2; column-gap: 2rem; }
+@media (max-width: 30rem) { .contents ol { columns: 1; } }
+.example { margin: 1rem 0; }
+.example pre { margin: 0; }
+.example pre + pre { border-top: none; border-radius: 0 0 6px 6px; }
+.example pre:first-child:not(:last-child) { border-radius: 6px 6px 0 0; }
+.out { background: var(--card); }
+.out samp { display: grid; grid-template-columns: 1.5em 1fr; }
+.out samp::before { color: var(--accent); }
+.out .value::before, .arrow { content: "⇒"; color: var(--accent); }
+.out .type::before, .colon { content: ":"; color: var(--accent); }
+.out .error { color: #b3261e; }
+@media (prefers-color-scheme: dark) { .out .error { color: #f2b8b5; } }
+.out .error::before { content: "✗"; }
+.out .output::before { content: "$"; }
