@@ -1,4 +1,10 @@
+import { check } from './checker.ts';
 import { isSha256String, toSha256String } from './sha256.ts';
+
+// The most scraps that a scrap may refer to, directly or not.
+const maxImports = 256;
+
+const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -15,6 +21,8 @@ export default {
           }
 
           const data = await request.arrayBuffer();
+          const rejection = await typeCheck(data, env.scraps);
+          if (rejection) return rejection;
           const key = await toSha256String(data);
           await env.scraps.put(key, data);
           return new Response(key, { status: 200 });
@@ -55,3 +63,45 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
+
+// typeCheck returns the response that rejects data, unless it is a scrap that
+// type checks against the scraps it refers to, which must be in the yard.
+async function typeCheck(
+  data: ArrayBuffer,
+  scraps: KVNamespace
+): Promise<Response | null> {
+  let source: string;
+  try {
+    source = utf8.decode(data);
+  } catch {
+    return new Response('A scrap must be UTF-8', { status: 422 });
+  }
+
+  const sources: Record<string, string> = {};
+  let count = 0;
+  for (;;) {
+    const result = check(source, sources);
+    if ('type' in result) return null;
+    if ('error' in result) return new Response(result.error, { status: 422 });
+
+    count += result.missing.length;
+    if (count > maxImports) {
+      return new Response(
+        `A scrap may refer to at most ${maxImports} scraps`,
+        { status: 422 }
+      );
+    }
+    const fetched = await Promise.all(
+      result.missing.map((key) => scraps.get(key, 'text'))
+    );
+    const absent = result.missing.filter((_, i) => fetched[i] == null);
+    if (absent.length > 0) {
+      return new Response(
+        'Push the scraps it refers to first; the yard lacks:\n' +
+          absent.map((key) => `$source:${key}\n`).join(''),
+        { status: 424 }
+      );
+    }
+    result.missing.forEach((key, i) => (sources[key] = fetched[i]!));
+  }
+}
