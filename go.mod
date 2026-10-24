@@ -7,4 +7,4 @@ tool (
 	github.com/Victorystick/scrapscript/cmd/scrap-check
 )
 
-require github.com/Victorystick/scrapscript v0.0.0-20261024151016-cfbb03a5458b // indirect
+require github.com/Victorystick/scrapscript v0.0.0-20261024215928-04ff1a3b0459 // indirect

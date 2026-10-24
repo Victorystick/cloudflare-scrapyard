@@ -14,6 +14,9 @@
   },
   "exclude": [
     "node_modules",
-    "**/node_modules/*"
+    "**/node_modules/*",
+    // These run in the browser, not the Worker.
+    "repl.ts",
+    "repl-worker.ts"
   ]
 }
