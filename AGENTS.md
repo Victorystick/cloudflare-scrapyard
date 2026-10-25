@@ -34,7 +34,12 @@ serves https://scraps.oseg.dev.
   browser: `repl-worker.ts` evaluates them (or runs their tests, with
   `data-run="test"`) with `scrap-wasm.wasm` in a Web
   Worker, fetching the scraps they refer to from the yard, and the page
-  stops it after 5 seconds.
+  stops it after 5 seconds. The `.example`s are highlighted with the CSS
+  Custom Highlight API: building gives each its ranges as
+  `data-highlights` (`highlightExamples` in `vite.config.ts`, with the
+  wasm `highlight` command), `repl.ts` registers them by tree-sitter
+  capture name and asks the worker again as they are edited, and
+  `style.css` colours them with `::highlight()`.
 - `tutorial.html` teaches the language as the pinned `scrap` CLI implements
   it, which lags SPEC.md (no `/` or `==` yet, for instance). Each
   `.example` is a scrap with what `scrap eval` and `scrap type` print, and

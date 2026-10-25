@@ -7,15 +7,18 @@ export interface WasmRequest {
   // The sources of the scraps that source refers to by hash, by hash.
   sources: Record<string, string>;
   // What to do with source if it checks, as the commands of the scrap CLI
-  // do: only check it (the default), evaluate it, or run its tests.
+  // do: only check it (the default), evaluate it, or run its tests. Or
+  // "highlight" it, which needn't even parse: its ranges by tree-sitter
+  // capture name, as start and end offsets into source.
   command?: Command;
 }
 
-export type Command = 'type' | 'eval' | 'test';
+export type Command = 'type' | 'eval' | 'test' | 'highlight';
 
 export type WasmResult =
   | { type: string; value?: string; results?: TestResult[]; error?: string }
   | { error: string }
+  | { highlights: Record<string, number[]> }
   | { missing: string[] };
 
 // The outcome of one case of a test scrap.

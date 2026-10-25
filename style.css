@@ -2,12 +2,14 @@
 :root {
   --bg: #f4f3ef; --card: #ffffff; --fg: #22211e; --muted: #6b6960; --line: #e2e0d8;
   --code-bg: #f7f6f2; --link: #2f7d4f; --accent: #2f7d4f;
+  --hl-string: #9a5b13; --hl-number: #1d6fa5; --hl-tag: #8250a8;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #141412; --card: #1c1c1a; --fg: #ebe9e3; --muted: #a3a097; --line: #2d2c29;
     --code-bg: #232320; --link: #6cc58f; --accent: #6cc58f;
+    --hl-string: #e0b070; --hl-number: #7cb8e8; --hl-tag: #c9a0e8;
   }
 }
 * { box-sizing: border-box; }
@@ -45,6 +47,14 @@ nav { margin-bottom: 1rem; font-size: .9rem; }
 .out { background: var(--card); transition: opacity .15s; }
 .out.stale { opacity: .45; }
 .out:empty { display: none; }
+/* Highlighted scraps: repl.ts registers their ranges by tree-sitter capture
+   name. Highlights can't change the font, so keywords get the accent. */
+::highlight(comment), ::highlight(comment\.doc), ::highlight(operator),
+::highlight(punctuation\.delimiter), ::highlight(punctuation\.bracket) { color: var(--muted); }
+::highlight(string), ::highlight(string\.special) { color: var(--hl-string); }
+::highlight(number), ::highlight(constant\.builtin) { color: var(--hl-number); }
+::highlight(constructor) { color: var(--hl-tag); }
+::highlight(keyword) { color: var(--accent); }
 /* repl.ts makes examples editable and adds their actions. */
 [contenteditable] { display: block; outline: none; caret-color: var(--accent); }
 .example pre:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
