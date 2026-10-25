@@ -77,6 +77,9 @@ function enhance(example: HTMLElement) {
   const out = example.querySelector<HTMLElement>('pre.out')!;
   const command = example.dataset.run === 'test' ? 'test' : 'eval';
   const original = code.textContent!;
+  // The page is built with the original code's highlights.
+  const built = JSON.parse(code.dataset.highlights ?? '{}');
+  highlight(code, built);
 
   try {
     code.contentEditable = 'plaintext-only';
@@ -92,6 +95,7 @@ function enhance(example: HTMLElement) {
   hint.textContent = navigator.platform.startsWith('Mac') ? '⌘↵' : 'Ctrl+↵';
   const reset = button('Reset', () => {
     code.textContent = original;
+    highlight(code, built);
     edited();
     run();
   });
@@ -104,16 +108,33 @@ function enhance(example: HTMLElement) {
   if (share && location.hash.length > 1) {
     code.textContent = decodeURIComponent(location.hash.slice(1));
     edited();
+    rehighlight();
     run();
   }
 
-  code.addEventListener('input', edited);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  code.addEventListener('input', () => {
+    edited();
+    clearTimeout(timer);
+    timer = setTimeout(rehighlight, 150);
+  });
   code.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       run();
     }
   });
+
+  // rehighlight highlights the code as it is, if it hasn't changed by the
+  // time the worker answers. Until then, the last highlights move with the
+  // edits.
+  async function rehighlight() {
+    const source = code.textContent!;
+    const result = await runner.run(source, 'highlight');
+    if ('highlights' in result && code.textContent === source) {
+      highlight(code, result.highlights);
+    }
+  }
 
   function edited() {
     reset.hidden = code.textContent === original;
@@ -132,6 +153,40 @@ function enhance(example: HTMLElement) {
     // Show only the latest run.
     if (code.textContent === source) {
       show(out, result);
+    }
+  }
+}
+
+// highlight replaces the highlights of code with spans: start and end
+// offsets into its text, by the tree-sitter capture name that style.css
+// colors with ::highlight(). It needs the CSS Custom Highlight API.
+function highlight(code: HTMLElement, spans: Record<string, number[]>) {
+  if (!('highlights' in CSS)) return;
+  // Ranges whose text was replaced have moved to code itself.
+  for (const ranges of CSS.highlights.values()) {
+    for (const range of ranges) {
+      if (code.contains(range.startContainer)) ranges.delete(range);
+    }
+  }
+  // Editing may split the text into several nodes.
+  const texts: Text[] = [];
+  const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) texts.push(walker.currentNode as Text);
+  const at = (offset: number): [Text, number] => {
+    for (const text of texts) {
+      if (offset <= text.length) return [text, offset];
+      offset -= text.length;
+    }
+    throw new RangeError('offset past the code');
+  };
+  for (const [name, offsets] of Object.entries(spans)) {
+    let ranges = CSS.highlights.get(name);
+    if (!ranges) CSS.highlights.set(name, (ranges = new Highlight()));
+    for (let i = 0; i < offsets.length; i += 2) {
+      const range = new Range();
+      range.setStart(...at(offsets[i]));
+      range.setEnd(...at(offsets[i + 1]));
+      ranges.add(range);
     }
   }
 }

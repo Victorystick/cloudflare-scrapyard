@@ -7,6 +7,7 @@ import {
   type Command,
   type WasmResult,
 } from './scrap-wasm.ts';
+import { highlightExamples } from './vite.config.ts';
 
 // The scrap CLI at the version that go.mod pins, which runs each example in
 // tutorial.html as a reader would.
@@ -92,6 +93,35 @@ describe('tutorial', () => {
   const wasm = new ScrapWasm(
     new WebAssembly.Module(readFileSync('./scrap-wasm.wasm'))
   );
+
+  test('highlights examples, without changing their text', () => {
+    const source = readFileSync('./tutorial.html', 'utf8');
+    const transform = highlightExamples().transformIndexHtml as (
+      html: string
+    ) => string;
+    const html = transform(source);
+    // Only the attribute is added.
+    expect(html.replace(/ data-highlights="[^"]*"/g, '')).toBe(source);
+    const found = [
+      ...html.matchAll(
+        /<pre><code data-highlights="([^"]*)">([\s\S]*?)<\/code><\/pre>/g
+      ),
+    ];
+    expect(found.length).toBe(all.length);
+    for (const [, attribute, code] of found) {
+      const text = unescape(code);
+      const spans: Record<string, number[]> = JSON.parse(unescape(attribute));
+      for (const offsets of Object.values(spans)) {
+        let last = 0;
+        for (const offset of offsets) {
+          expect(offset).toBeGreaterThanOrEqual(last);
+          last = offset;
+        }
+        expect(last).toBeLessThanOrEqual(text.length);
+      }
+    }
+    expect(found[0][1]).toContain('number');
+  });
 
   for (const { source, run: command, outputs } of all) {
     test('in the browser: ' + source, async () => {
