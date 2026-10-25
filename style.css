@@ -38,10 +38,28 @@ nav { margin-bottom: 1rem; font-size: .9rem; }
 .contents ol { margin: 0; padding-left: 1.5rem; columns: 2; column-gap: 2rem; }
 @media (max-width: 30rem) { .contents ol { columns: 1; } }
 .example { margin: 1rem 0; }
-.example pre { margin: 0; }
-.example pre + pre { border-top: none; border-radius: 0 0 6px 6px; }
-.example pre:first-child:not(:last-child) { border-radius: 6px 6px 0 0; }
-.out { background: var(--card); }
+.example > * { margin: 0; border: 1px solid var(--line); border-radius: 0; }
+.example > * + * { border-top: none; }
+.example > :first-child { border-radius: 6px 6px 0 0; }
+.example > :last-child { border-radius: 0 0 6px 6px; }
+.out { background: var(--card); transition: opacity .15s; }
+.out.stale { opacity: .45; }
+.out:empty { display: none; }
+/* repl.ts makes examples editable and adds their actions. */
+[contenteditable] { display: block; outline: none; caret-color: var(--accent); }
+.example pre:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: .5rem;
+  padding: .3rem .5rem; background: var(--code-bg); font-size: .8rem; color: var(--muted);
+}
+.actions:last-child { border-radius: 0 0 6px 6px; }
+.actions button {
+  font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line);
+  border-radius: 4px; padding: .1rem .6rem; cursor: pointer;
+}
+.actions button:last-child { background: var(--accent); border-color: var(--accent); color: var(--card); font-weight: 600; }
+.actions button:disabled { opacity: .6; cursor: progress; }
+.playground [contenteditable] { min-height: 10rem; }
 .out samp { display: grid; grid-template-columns: 1.5em 1fr; }
 .out samp::before { color: var(--accent); }
 .out .value::before, .arrow { content: "⇒"; color: var(--accent); }

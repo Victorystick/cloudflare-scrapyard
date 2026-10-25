@@ -4,7 +4,7 @@ go 1.24.2
 
 tool (
 	github.com/Victorystick/scrapscript/cmd/scrap
-	github.com/Victorystick/scrapscript/cmd/scrap-check
+	github.com/Victorystick/scrapscript/cmd/scrap-wasm
 )
 
-require github.com/Victorystick/scrapscript v0.0.0-20261024151016-cfbb03a5458b // indirect
+require github.com/Victorystick/scrapscript v0.0.0-20261025132223-58bb2cca0d64 // indirect
