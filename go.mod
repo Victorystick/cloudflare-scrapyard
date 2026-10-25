@@ -7,4 +7,4 @@ tool (
 	github.com/Victorystick/scrapscript/cmd/scrap-wasm
 )
 
-require github.com/Victorystick/scrapscript v0.0.0-20261025100825-cd69f9f1c0b2 // indirect
+require github.com/Victorystick/scrapscript v0.0.0-20261025124629-ee5c38723628 // indirect
