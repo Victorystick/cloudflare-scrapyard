@@ -1,9 +1,10 @@
 /// <reference lib="dom" />
 // Makes the examples on a page editable, and runs them in the browser with
-// scrap-wasm.wasm, which prints what `scrap eval` and `scrap type` do.
-// Without this script, the examples show what they print as they are.
+// scrap-wasm.wasm, which prints what `scrap eval` and `scrap type` do, or
+// `scrap test` for an example with data-run="test". Without this script,
+// the examples show what they print as they are.
 import type { RunRequest, RunResponse } from './repl-worker.ts';
-import type { WasmResult } from './scrap-wasm.ts';
+import { printTests, type Command, type WasmResult } from './scrap-wasm.ts';
 
 // How long a scrap may run before the page stops it.
 const timeout = 5000;
@@ -16,7 +17,7 @@ class Runner {
   #next = 0;
   #pending = new Map<number, (result: WasmResult) => void>();
 
-  async run(source: string): Promise<WasmResult> {
+  async run(source: string, command: Command): Promise<WasmResult> {
     const worker = (this.#worker ??= this.#start());
     try {
       await this.#ready;
@@ -33,7 +34,7 @@ class Runner {
         clearTimeout(timer);
         resolve(result);
       });
-      worker.postMessage({ id, source } satisfies RunRequest);
+      worker.postMessage({ id, source, command } satisfies RunRequest);
     });
   }
 
@@ -74,6 +75,7 @@ const runner = new Runner();
 function enhance(example: HTMLElement) {
   const code = example.querySelector<HTMLElement>('pre:first-child > code')!;
   const out = example.querySelector<HTMLElement>('pre.out')!;
+  const command = example.dataset.run === 'test' ? 'test' : 'eval';
   const original = code.textContent!;
 
   try {
@@ -125,7 +127,7 @@ function enhance(example: HTMLElement) {
     }
     runButton.disabled = true;
     out.classList.add('stale');
-    const result = await runner.run(source);
+    const result = await runner.run(source, command);
     runButton.disabled = false;
     // Show only the latest run.
     if (code.textContent === source) {
@@ -151,15 +153,18 @@ function show(out: HTMLElement, result: WasmResult) {
     s.textContent = text;
     samps.push(s);
   };
-  if ('value' in result && result.value != null) samp('value', result.value);
-  if ('error' in result && result.error != null) samp('error', result.error);
-  if ('type' in result) samp('type', result.type);
+  if ('results' in result && result.results != null) {
+    // As `scrap test` prints them, without the type.
+    samp('output', printTests(result.results));
+  } else {
+    if ('value' in result && result.value != null) samp('value', result.value);
+    if ('error' in result && result.error != null) samp('error', result.error);
+    if ('type' in result) samp('type', result.type);
+  }
   out.replaceChildren(...samps);
   out.classList.remove('stale');
 }
 
-for (const example of document.querySelectorAll<HTMLElement>(
-  '.example:not([data-run])'
-)) {
+for (const example of document.querySelectorAll<HTMLElement>('.example')) {
   enhance(example);
 }

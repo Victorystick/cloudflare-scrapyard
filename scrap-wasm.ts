@@ -6,14 +6,37 @@ export interface WasmRequest {
   source: string;
   // The sources of the scraps that source refers to by hash, by hash.
   sources: Record<string, string>;
-  // Whether to evaluate source if it checks.
-  eval?: boolean;
+  // What to do with source if it checks, as the commands of the scrap CLI
+  // do: only check it (the default), evaluate it, or run its tests.
+  command?: Command;
 }
 
+export type Command = 'type' | 'eval' | 'test';
+
 export type WasmResult =
-  | { type: string; value?: string; error?: string }
+  | { type: string; value?: string; results?: TestResult[]; error?: string }
   | { error: string }
   | { missing: string[] };
+
+// The outcome of one case of a test scrap.
+export interface TestResult {
+  path: string;
+  failed?: boolean;
+  message?: string;
+}
+
+// printTests prints test results as `scrap test` does.
+export function printTests(results: TestResult[]): string {
+  let out = '';
+  let failed = 0;
+  for (const { path, failed: f, message = '' } of results) {
+    if (!f) continue;
+    failed++;
+    out += ('FAIL ' + path).trim() + '\n';
+    out += '    ' + message.replaceAll('\n', '\n    ') + '\n';
+  }
+  return out + `${failed} failed, ${results.length - failed} passed`;
+}
 
 interface Exports {
   memory: WebAssembly.Memory;

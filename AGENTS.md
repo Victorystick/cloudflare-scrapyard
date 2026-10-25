@@ -31,7 +31,8 @@ serves https://scraps.oseg.dev.
   built by the Cloudflare Vite plugin. A new page must be listed in
   `vite.config.ts`.
 - `repl.ts` makes the `.example`s of a page editable and runs them in the
-  browser: `repl-worker.ts` evaluates them with `scrap-wasm.wasm` in a Web
+  browser: `repl-worker.ts` evaluates them (or runs their tests, with
+  `data-run="test"`) with `scrap-wasm.wasm` in a Web
   Worker, fetching the scraps they refer to from the yard, and the page
   stops it after 5 seconds.
 - `tutorial.html` teaches the language as the pinned `scrap` CLI implements
