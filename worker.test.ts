@@ -64,6 +64,28 @@ describe('worker', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(data);
   });
 
+  test('read lets caches keep the scrap forever', async () => {
+    const bindings = await worker.getBindings<{ scraps: any }>();
+
+    const data = new TextEncoder().encode('1 + 2');
+    const key = await toSha256String(data.buffer);
+    await bindings.scraps.put(key, data.buffer);
+
+    const response = await worker.dispatchFetch('http://example.com/' + key);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=31536000, immutable'
+    );
+    expect(response.headers.get('Vary')).toBe('Accept');
+  });
+
+  test('read a scrap the yard lacks, which caches must not keep', async () => {
+    const key = await toSha256String(new TextEncoder().encode('2 + 3').buffer);
+
+    const response = await worker.dispatchFetch('http://example.com/' + key);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe(null);
+  });
+
   test('write with without/wrong content-type', async () => {
     const bindings = await worker.getBindings<{ scraps: any }>();
 

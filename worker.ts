@@ -52,6 +52,10 @@ export default {
               'Content-Type': requestedScraps
                 ? 'application/scrap'
                 : 'text/plain',
+              // A hash names one source forever, so caches may keep it as
+              // long as they like. Not so a 404: the scrap may be pushed.
+              'Cache-Control': 'public, max-age=31536000, immutable',
+              Vary: 'Accept',
             },
           });
         }
