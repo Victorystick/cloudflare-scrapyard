@@ -239,6 +239,12 @@ $ echo '1 + 2' | scrap type
 <pre><code>{ name = "Ada", born = 1815 }</code></pre>
 <pre class="out"><samp class="value">{ born = 1815, name = "Ada" }</samp><samp class="type">{ born : int, name : text }</samp></pre>
       </div>
+      <p>A field named like the value it holds needs no <code>=</code>: <code>{ name }</code> is short for <code>{ name = name }</code>.</p>
+      <div class="example">
+<pre><code>person "Ada" 1815
+; person = name -> born -> { name, born }</code></pre>
+<pre class="out"><samp class="value">{ born = 1815, name = "Ada" }</samp><samp class="type">{ born : int, name : text }</samp></pre>
+      </div>
       <p>Read a field with a dot, with no space before it:</p>
       <div class="example">
 <pre><code>ada.name
@@ -312,22 +318,22 @@ $ echo '1 + 2' | scrap type
   | _ -> "many"</code></pre>
 <pre class="out"><samp class="value">"many"</samp><samp class="type">text</samp></pre>
       </div>
-      <p>Matching is how a scrap makes choices: there is no <code>if</code>. A pattern names the parts it takes apart, such as the payload of a tag or the fields of a record:</p>
+      <p>Matching is how a scrap makes choices: there is no <code>if</code>. A pattern names the parts it takes apart, such as the payload of a tag or the fields of a record. As in a record, <code>{ w, h }</code> is short for <code>{ w = w, h = h }</code>, naming each field's value after the field:</p>
       <div class="example">
 <pre><code>area
 ; area =
   | #square side -> side * side
-  | #rect { w = w, h = h } -> w * h</code></pre>
+  | #rect { w, h } -> w * h</code></pre>
 <pre class="out"><samp class="value">area
 ; area =
   | #square side -> side * side
-  | #rect { w = w, h = h } -> w * h</samp><samp class="type">[ #rect { h : int, w : int }, #square int ] -> int</samp></pre>
+  | #rect { w, h } -> w * h</samp><samp class="type">[ #rect { h : int, w : int }, #square int ] -> int</samp></pre>
       </div>
       <div class="example">
 <pre><code>[#square 2, #rect { w = 2, h = 3 }] |> list/map area
 ; area =
   | #square side -> side * side
-  | #rect { w = w, h = h } -> w * h</code></pre>
+  | #rect { w, h } -> w * h</code></pre>
 <pre class="out"><samp class="value">[ 4, 6 ]</samp><samp class="type">list int</samp></pre>
       </div>
       <p>The type of <code>area</code> has no <code>..a</code>: it takes those two tags only. Give it another, and the type checker stops you before the scrap runs:</p>
@@ -335,7 +341,7 @@ $ echo '1 + 2' | scrap type
 <pre><code>area (#circle 1)
 ; area =
   | #square side -> side * side
-  | #rect { w = w, h = h } -> w * h</code></pre>
+  | #rect { w, h } -> w * h</code></pre>
 <pre class="out"><samp class="error">error: cannot unify '[ #rect { h : int, w : int }, #square int ]' with '[ #circle int, ..a ]'
 
     1: area (#circle 1)
@@ -465,7 +471,7 @@ $ echo '1 + 2' | scrap type
 <pre><code>{ adds = eq (1 + 1) 2
 , joins = eq ("a" ++ "b") "abc"
 }
-; eq = got -> want -> #eq { got = got, want = want }</code></pre>
+; eq = got -> want -> #eq { got, want }</code></pre>
 <pre class="out"><samp class="output">FAIL joins
     got  "ab"
     want "abc"
