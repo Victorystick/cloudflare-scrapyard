@@ -1,9 +1,9 @@
 /// <reference lib="dom" />
 // Makes the examples on a page editable, and runs them in the browser with
-// scrap-check.wasm, which prints what `scrap eval` and `scrap type` do.
+// scrap-wasm.wasm, which prints what `scrap eval` and `scrap type` do.
 // Without this script, the examples show what they print as they are.
 import type { RunRequest, RunResponse } from './repl-worker.ts';
-import type { CheckResult } from './scrap-check.ts';
+import type { WasmResult } from './scrap-wasm.ts';
 
 // How long a scrap may run before the page stops it.
 const timeout = 5000;
@@ -14,9 +14,9 @@ class Runner {
   #worker: Worker | null = null;
   #ready: Promise<void> = Promise.resolve();
   #next = 0;
-  #pending = new Map<number, (result: CheckResult) => void>();
+  #pending = new Map<number, (result: WasmResult) => void>();
 
-  async run(source: string): Promise<CheckResult> {
+  async run(source: string): Promise<WasmResult> {
     const worker = (this.#worker ??= this.#start());
     try {
       await this.#ready;
@@ -143,7 +143,7 @@ function button(label: string, onclick: () => void): HTMLButtonElement {
 }
 
 // show shows result in out, as the static examples do.
-function show(out: HTMLElement, result: CheckResult) {
+function show(out: HTMLElement, result: WasmResult) {
   const samps: HTMLElement[] = [];
   const samp = (kind: string, text: string) => {
     const s = document.createElement('samp');

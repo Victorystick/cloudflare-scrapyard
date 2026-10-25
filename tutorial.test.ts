@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { Checker, type CheckResult } from './scrap-check.ts';
+import { ScrapWasm, type WasmResult } from './scrap-wasm.ts';
 
 // The scrap CLI at the version that go.mod pins, which runs each example in
 // tutorial.html as a reader would.
@@ -51,12 +51,12 @@ function run(command: string, source: string): string {
 // runInBrowser runs source as the tutorial's Run buttons do, fetching the
 // scraps it refers to from the yard.
 async function runInBrowser(
-  checker: Checker,
+  scrap: ScrapWasm,
   source: string
-): Promise<CheckResult> {
+): Promise<WasmResult> {
   const sources: Record<string, string> = {};
   for (;;) {
-    const result = checker.check({ source, sources, eval: true });
+    const result = scrap.run({ source, sources, eval: true });
     if (!('missing' in result)) return result;
     for (const key of result.missing) {
       const response = await fetch('https://scraps.oseg.dev/' + key);
@@ -82,14 +82,14 @@ describe('tutorial', () => {
     expect(all.length).toBeGreaterThan(40);
   });
 
-  // npm test builds scrap-check.wasm before running the tests.
-  const checker = new Checker(
-    new WebAssembly.Module(readFileSync('./scrap-check.wasm'))
+  // npm test builds scrap-wasm.wasm before running the tests.
+  const wasm = new ScrapWasm(
+    new WebAssembly.Module(readFileSync('./scrap-wasm.wasm'))
   );
 
   for (const { source, run: command, outputs } of all) {
     test.skipIf(command !== undefined)('in the browser: ' + source, async () => {
-      const result = await runInBrowser(checker, source);
+      const result = await runInBrowser(wasm, source);
       if ('error' in outputs) {
         expect(result).toEqual({ error: outputs.error });
       } else {

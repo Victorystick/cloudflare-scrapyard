@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 // Runs scraps for repl.ts, off the page's thread, so that a scrap that
 // loops forever doesn't freeze the page. The page stops it instead.
-import { Checker, type CheckResult } from './scrap-check.ts';
+import { ScrapWasm, type WasmResult } from './scrap-wasm.ts';
 
 export interface RunRequest {
   id: number;
@@ -12,13 +12,13 @@ export interface RunRequest {
 export type RunResponse =
   | { ready: true }
   | { ready: false; error: string }
-  | { id: number; result: CheckResult };
+  | { id: number; result: WasmResult };
 
-const checker = WebAssembly.compileStreaming(
-  fetch(new URL('./scrap-check.wasm', import.meta.url))
-).then((module) => new Checker(module));
+const scrap = WebAssembly.compileStreaming(
+  fetch(new URL('./scrap-wasm.wasm', import.meta.url))
+).then((module) => new ScrapWasm(module));
 
-checker.then(
+scrap.then(
   () => post({ ready: true }),
   (e) => post({ ready: false, error: String(e) })
 );
@@ -35,19 +35,19 @@ const sources: Record<string, string> = {};
 const maxImports = 256;
 
 self.onmessage = async ({ data }: MessageEvent<RunRequest>) => {
-  let result: CheckResult;
+  let result: WasmResult;
   try {
-    result = await run(await checker, data.source);
+    result = await run(await scrap, data.source);
   } catch (e) {
     result = { error: String(e) };
   }
   post({ id: data.id, result });
 };
 
-async function run(checker: Checker, source: string): Promise<CheckResult> {
+async function run(scrap: ScrapWasm, source: string): Promise<WasmResult> {
   let count = 0;
   for (;;) {
-    const result = checker.check({ source, sources, eval: true });
+    const result = scrap.run({ source, sources, eval: true });
     if (!('missing' in result)) return result;
 
     count += result.missing.length;

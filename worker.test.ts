@@ -15,7 +15,7 @@ describe('worker', () => {
 
   beforeAll(() => {
     // Vitest loads the Worker before this runs, so npm test builds
-    // scrap-check.wasm first.
+    // scrap-wasm.wasm first.
     const build = spawnSync('npx vite build', {
       shell: true,
       stdio: 'pipe',

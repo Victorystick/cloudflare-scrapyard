@@ -19,18 +19,19 @@ serves https://scraps.oseg.dev.
 - `GET /<sha256>` lets caches keep a scrap forever (`immutable`), as its
   hash names it, and varies by `Accept`. A 404 stays uncached, since the
   scrap may be pushed later.
-- `scrap-check.wasm` is the type checker, which `npm run build` builds from
-  `cmd/scrap-check` in the scrapscript repository at the version that
-  `go.mod` pins, so building needs Go. Bump it with
-  `go get -tool github.com/Victorystick/scrapscript/cmd/scrap-check@<commit>`.
-  `scrap-check.ts` runs it, with just enough of WASI for Go, in the Worker
-  (`checker.ts`), the browser and tests.
+- `scrap-wasm.wasm` is the scrap tool as WebAssembly, which checks and
+  evaluates scraps. `npm run build` builds it from `cmd/scrap-wasm` in the
+  scrapscript repository at the version that `go.mod` pins, so building
+  needs Go. Bump it, and the `scrap` CLI with it, with
+  `go get -tool github.com/Victorystick/scrapscript/cmd/scrap-wasm@<commit>`.
+  `scrap-wasm.ts` runs it, with just enough of WASI for Go, in the Worker
+  (`checker.ts`, which only checks), the browser and tests.
 - Everything else is a static asset (`index.html`, `tutorial.html`,
-  `play.html`, `style.css`, and the browser's copy of `scrap-check.wasm`),
+  `play.html`, `style.css`, and the browser's copy of `scrap-wasm.wasm`),
   built by the Cloudflare Vite plugin. A new page must be listed in
   `vite.config.ts`.
 - `repl.ts` makes the `.example`s of a page editable and runs them in the
-  browser: `repl-worker.ts` evaluates them with `scrap-check.wasm` in a Web
+  browser: `repl-worker.ts` evaluates them with `scrap-wasm.wasm` in a Web
   Worker, fetching the scraps they refer to from the yard, and the page
   stops it after 5 seconds.
 - `tutorial.html` teaches the language as the pinned `scrap` CLI implements

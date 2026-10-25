@@ -1,8 +1,8 @@
-// Runs scrap-check.wasm, the scrapscript type checker compiled to
-// WebAssembly from cmd/scrap-check in Victorystick/scrapscript (see
-// `npm run build:checker`), in the Worker, the browser and tests alike.
+// Runs scrap-wasm.wasm, the scrap tool compiled to WebAssembly from
+// cmd/scrap-wasm in Victorystick/scrapscript (see `npm run build:wasm`), in
+// the Worker, the browser and tests alike.
 
-export interface CheckRequest {
+export interface WasmRequest {
   source: string;
   // The sources of the scraps that source refers to by hash, by hash.
   sources: Record<string, string>;
@@ -10,7 +10,7 @@ export interface CheckRequest {
   eval?: boolean;
 }
 
-export type CheckResult =
+export type WasmResult =
   | { type: string; value?: string; error?: string }
   | { error: string }
   | { missing: string[] };
@@ -19,17 +19,17 @@ interface Exports {
   memory: WebAssembly.Memory;
   _initialize(): void;
   alloc(n: number): number;
-  check(): number;
+  run(): number;
   output(): number;
 }
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-// A Checker checks scraps with an instance of scrap-check.wasm. Starting
-// the Go runtime takes far longer than a check, so hosts make one Checker
-// and reuse it.
-export class Checker {
+// A ScrapWasm checks and runs scraps with an instance of scrap-wasm.wasm.
+// Starting the Go runtime takes far longer than a run, so hosts make one
+// ScrapWasm and reuse it.
+export class ScrapWasm {
   #module: WebAssembly.Module;
   #instance: Exports | null = null;
 
@@ -37,13 +37,13 @@ export class Checker {
     this.#module = module;
   }
 
-  check(request: CheckRequest): CheckResult {
+  run(request: WasmRequest): WasmResult {
     const c = (this.#instance ??= start(this.#module));
     try {
       const input = encoder.encode(JSON.stringify(request));
       const ptr = c.alloc(input.length);
       new Uint8Array(c.memory.buffer, ptr, input.length).set(input);
-      const n = c.check();
+      const n = c.run();
       return JSON.parse(
         decoder.decode(new Uint8Array(c.memory.buffer, c.output(), n))
       );
