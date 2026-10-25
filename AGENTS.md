@@ -27,7 +27,9 @@ serves https://scraps.oseg.dev.
   `scrap-wasm.ts` runs it, with just enough of WASI for Go, in the Worker
   (`checker.ts`, which only checks), the browser and tests.
 - Everything else is a static asset (`index.html`, `tutorial.html`,
-  `play.html`, `style.css`, and the browser's copy of `scrap-wasm.wasm`),
+  `play.html`, `style.css`, the link preview image `public/og.png` that
+  their Open Graph tags name, rendered from `og-image.html`, and the
+  browser's copy of `scrap-wasm.wasm`),
   built by the Cloudflare Vite plugin. A new page must be listed in
   `vite.config.ts`.
 - `repl.ts` makes the `.example`s of a page editable and runs them in the
