@@ -16,6 +16,9 @@ serves https://scraps.oseg.dev.
   scraps that type check, against the scraps they refer to by hash, which
   must be in the yard: else 422 with the error, or 424 with the missing
   hashes.
+- `GET /<sha256>` lets caches keep a scrap forever (`immutable`), as its
+  hash names it, and varies by `Accept`. A 404 stays uncached, since the
+  scrap may be pushed later.
 - `scrap-check.wasm` is the type checker, which `npm run build` builds from
   `cmd/scrap-check` in the scrapscript repository at the version that
   `go.mod` pins, so building needs Go. Bump it with
