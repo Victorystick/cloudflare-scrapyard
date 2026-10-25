@@ -10,3 +10,5 @@ github.com/Victorystick/scrapscript v0.0.0-20261025100825-cd69f9f1c0b2 h1:qJhkNW
 github.com/Victorystick/scrapscript v0.0.0-20261025100825-cd69f9f1c0b2/go.mod h1:NtJMHlOhjoSd9OC0P6UMfMw0yUPP1GzgxblYFcRgiqM=
 github.com/Victorystick/scrapscript v0.0.0-20261025124629-ee5c38723628 h1:Ts9rjdfGUb82WzR3sfeshPeVuS/6dGySG9e9GJ9BrVg=
 github.com/Victorystick/scrapscript v0.0.0-20261025124629-ee5c38723628/go.mod h1:NtJMHlOhjoSd9OC0P6UMfMw0yUPP1GzgxblYFcRgiqM=
+github.com/Victorystick/scrapscript v0.0.0-20261025132223-58bb2cca0d64 h1:NumoAWgLdmQF5Z93runS7fcNTmtQlOEFo8Y57+fsX00=
+github.com/Victorystick/scrapscript v0.0.0-20261025132223-58bb2cca0d64/go.mod h1:NtJMHlOhjoSd9OC0P6UMfMw0yUPP1GzgxblYFcRgiqM=
