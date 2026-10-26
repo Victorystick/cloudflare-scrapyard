@@ -19,6 +19,8 @@
     "repl.ts",
     "repl-worker.ts",
     "runner.ts",
-    "web-play.ts"
+    "wasm-worker.ts",
+    "web-play.ts",
+    "web-worker.ts"
   ]
 }

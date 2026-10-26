@@ -3,9 +3,9 @@
 // scrap-wasm.wasm, which prints what `scrap eval` and `scrap type` do, or
 // `scrap test` for an example with data-run="test". Without this script,
 // the examples show what they print as they are.
-import { button, editable, highlight, Runner, runKeys, show } from './runner.ts';
+import { button, editable, highlight, runKeys, scrapRunner, show } from './runner.ts';
 
-const runner = new Runner();
+const runner = scrapRunner();
 
 // enhance makes an example editable, with a button that runs it.
 function enhance(example: HTMLElement) {

@@ -1,27 +1,37 @@
 /// <reference lib="dom" />
-// Runs scraps in the browser with scrap-wasm.wasm, off the page's thread,
-// for repl.ts and web-play.ts, and highlights them and shows what they print.
-import type { RunRequest, RunResponse, ScrapRequest } from './repl-worker.ts';
+// Runs scraps in the browser, off the page's thread, for repl.ts and
+// web-play.ts, and highlights them and shows what they print.
+import type { ScrapRequest } from './repl-worker.ts';
 import { printTests, type WasmResult } from './scrap-wasm.ts';
+import type { RunRequest, RunResponse } from './wasm-worker.ts';
 
 // How long a scrap may run before the page stops it.
 const timeout = 5000;
 
-// A Runner runs scraps in a Web Worker, which it replaces when a scrap
-// runs too long.
-export class Runner {
+// A Runner runs requests in a Web Worker that wasm-worker.ts serves them
+// in, which it replaces when a request runs too long. The new worker has
+// none of the old one's state. A Result may be an error, { error: "…" },
+// as when the worker fails.
+export class Runner<Request, Result extends { error?: string } | object> {
+  #start: () => Worker;
   #worker: Worker | null = null;
   #ready: Promise<void> = Promise.resolve();
   #next = 0;
-  #pending = new Map<number, (result: WasmResult) => void>();
+  #pending = new Map<number, (result: Result) => void>();
+  // Called when a request runs too long, and the worker with it is stopped.
+  stopped?: () => void;
 
-  async run(request: ScrapRequest): Promise<WasmResult> {
-    const worker = (this.#worker ??= this.#start());
+  constructor(start: () => Worker) {
+    this.#start = start;
+  }
+
+  async run(request: Request): Promise<Result> {
+    const worker = (this.#worker ??= this.#begin());
     try {
       await this.#ready;
     } catch (e) {
       this.#worker = null;
-      return { error: String(e) };
+      return { error: String(e) } as Result;
     }
     const id = this.#next++;
     return new Promise((resolve) => {
@@ -32,16 +42,14 @@ export class Runner {
         clearTimeout(timer);
         resolve(result);
       });
-      worker.postMessage({ id, request } satisfies RunRequest);
+      worker.postMessage({ id, request } satisfies RunRequest<Request>);
     });
   }
 
-  #start(): Worker {
-    const worker = new Worker(new URL('./repl-worker.ts', import.meta.url), {
-      type: 'module',
-    });
+  #begin(): Worker {
+    const worker = this.#start();
     this.#ready = new Promise((resolve, reject) => {
-      worker.onmessage = ({ data }: MessageEvent<RunResponse>) => {
+      worker.onmessage = ({ data }: MessageEvent<RunResponse<Result>>) => {
         if ('id' in data) {
           this.#pending.get(data.id)?.(data.result);
           this.#pending.delete(data.id);
@@ -62,16 +70,27 @@ export class Runner {
   #stop(error: string) {
     this.#worker?.terminate();
     this.#worker = null;
-    for (const resolve of this.#pending.values()) resolve({ error });
+    for (const resolve of this.#pending.values()) resolve({ error } as Result);
     this.#pending.clear();
+    this.stopped?.();
   }
+}
+
+// scrapRunner returns a Runner of scraps, with scrap-wasm.wasm.
+export function scrapRunner(): Runner<ScrapRequest, WasmResult> {
+  return new Runner(
+    () =>
+      new Worker(new URL('./repl-worker.ts', import.meta.url), {
+        type: 'module',
+      })
+  );
 }
 
 // editable makes code editable as a scrap, which it highlights anew as it is
 // edited, and calls edited on each edit and run on runKeys. It returns what
 // highlights code as it is, as after replacing its text.
 export function editable(
-  runner: Runner,
+  runner: Runner<ScrapRequest, WasmResult>,
   code: HTMLElement,
   edited: () => void,
   run: () => void

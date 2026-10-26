@@ -6,3 +6,4 @@ worker-configuration.d.ts
 
 .dev.vars*
 scrap-wasm.wasm
+scrap-web.wasm

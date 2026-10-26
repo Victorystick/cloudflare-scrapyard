@@ -1,6 +1,7 @@
-// Runs scrap-wasm.wasm, the scrap tool compiled to WebAssembly from
-// cmd/scrap-wasm in Victorystick/scrapscript (see `npm run build:wasm`), in
-// the Worker, the browser and tests alike.
+// Runs the modules that Victorystick/scrapscript builds for WebAssembly
+// (see `npm run build:wasm`), in the Worker, the browser and tests alike:
+// scrap-wasm.wasm, the scrap tool, from cmd/scrap-wasm, and scrap-web.wasm
+// (see scrap-web.ts).
 
 export interface WasmRequest {
   source: string;
@@ -9,46 +10,20 @@ export interface WasmRequest {
   // What to do with source if it checks, as the commands of the scrap CLI
   // do: only check it (the default), evaluate it, or run its tests. Or
   // "highlight" it, which needn't even parse: its ranges by tree-sitter
-  // capture name, as start and end offsets into source. Or run it as an
-  // app of the web platform: "web" (see web-play.ts).
+  // capture name, as start and end offsets into source.
   command?: Command;
   // The drafts that source and the drafts refer to by path, $"./a.scrap",
   // by path.
   drafts?: Record<string, string>;
-  // What "web" runs the app with: a scrap of its model, else its init, and
-  // of a message to update the model with first, or of a function of the
-  // input to make it.
-  state?: string;
-  message?: string;
-  input?: string;
 }
 
-export type Command = 'type' | 'eval' | 'test' | 'highlight' | 'web';
+export type Command = 'type' | 'eval' | 'test' | 'highlight';
 
 export type WasmResult =
   | { type: string; value?: string; results?: TestResult[]; error?: string }
   | { error: string }
   | { highlights: Record<string, number[]> }
-  | { state: string; message?: string; view: View }
   | { missing: string[] };
-
-// The view of an app of the web platform: text, or an element.
-export type View = string | ViewElement;
-
-export interface ViewElement {
-  tag: string;
-  attrs?: Record<string, string>;
-  // The message to send on each event, as a scrap.
-  on?: Record<string, Handler>;
-  children?: View[];
-}
-
-export interface Handler {
-  message: string;
-  // Whether the message is a function of the value of the event's target,
-  // to pass as the input.
-  value?: boolean;
-}
 
 // The outcome of one case of a test scrap.
 export interface TestResult {
@@ -81,10 +56,11 @@ interface Exports {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-// A ScrapWasm checks and runs scraps with an instance of scrap-wasm.wasm.
-// Starting the Go runtime takes far longer than a run, so hosts make one
-// ScrapWasm and reuse it.
-export class ScrapWasm {
+// A WasiModule runs requests with an instance of a module that serves them
+// as the package host/wasmhost in Victorystick/scrapscript does, such as
+// scrap-wasm.wasm or scrap-web.wasm. Starting the Go runtime takes far
+// longer than a run, so hosts make one and reuse it.
+export class WasiModule<Request, Response> {
   #module: WebAssembly.Module;
   #instance: Exports | null = null;
 
@@ -92,7 +68,7 @@ export class ScrapWasm {
     this.#module = module;
   }
 
-  run(request: WasmRequest): WasmResult {
+  run(request: Request): Response {
     const c = (this.#instance ??= start(this.#module));
     try {
       const input = encoder.encode(JSON.stringify(request));
@@ -109,6 +85,9 @@ export class ScrapWasm {
     }
   }
 }
+
+// A ScrapWasm checks and runs scraps with an instance of scrap-wasm.wasm.
+export class ScrapWasm extends WasiModule<WasmRequest, WasmResult> {}
 
 function start(module: WebAssembly.Module): Exports {
   let exports: Exports;
@@ -176,6 +155,9 @@ function wasi(memory: () => DataView) {
     fd_fdstat_set_flags: () => ESUCCESS,
     fd_read: () => EBADF,
     fd_close: () => EBADF,
+    fd_filestat_get: () => EBADF,
+    path_open: () => ENOSYS,
+    path_filestat_get: () => ENOSYS,
     fd_prestat_get: () => EBADF,
     fd_prestat_dir_name: () => EBADF,
     poll_oneoff: () => ENOSYS,

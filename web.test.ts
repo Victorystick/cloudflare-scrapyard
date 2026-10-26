@@ -3,11 +3,12 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ScrapWasm,
+  ScrapWeb,
   type View,
   type ViewElement,
-  type WasmRequest,
-} from './scrap-wasm.ts';
+  type WebEvent,
+  type WebResponse,
+} from './scrap-web.ts';
 
 // drafts returns the drafts that a page starts with, by name: a .draft div
 // holds one in a <pre><code>.
@@ -49,27 +50,35 @@ describe('web playground', () => {
   const page = readFileSync('./web.html', 'utf8');
   const start = drafts(page);
 
-  // npm test builds scrap-wasm.wasm before running the tests.
-  const wasm = new ScrapWasm(
-    new WebAssembly.Module(readFileSync('./scrap-wasm.wasm'))
-  );
+  // npm test builds scrap-web.wasm before running the tests.
+  const module = new WebAssembly.Module(readFileSync('./scrap-web.wasm'));
 
-  // web runs the app with drafts as the page does, which keeps the state
-  // in state.scrap.
-  function web(
-    drafts: Record<string, string>,
-    event: Pick<WasmRequest, 'message' | 'input'> = {}
-  ) {
-    const result = wasm.run({
-      command: 'web',
+  // load loads the app in a new host, as the page does.
+  function load(drafts: Record<string, string>) {
+    const host = new ScrapWeb(module);
+    const res = host.run({
+      op: 'load',
       source: '$"./main.scrap"',
       drafts,
-      sources: {},
       state: drafts['state.scrap'] ? '$"./state.scrap"' : undefined,
-      ...event,
     });
-    if (!('view' in result)) throw new Error(JSON.stringify(result));
-    return { result, drafts: { ...drafts, 'state.scrap': result.state } };
+    expect(res.error).toBeUndefined();
+    return { host, res };
+  }
+
+  // send sends the event of the handler of the view.
+  function send(
+    host: ScrapWeb,
+    res: WebResponse,
+    el: ViewElement,
+    event: string,
+    input?: string
+  ) {
+    const e: WebEvent = { generation: res.generation!, handler: el.on![event].handler };
+    if (input != null) e.input = input;
+    const next = host.run({ op: 'send', events: [e] });
+    expect(next.error).toBeUndefined();
+    return next;
   }
 
   test('has the app and its state', () => {
@@ -82,46 +91,49 @@ describe('web playground', () => {
   });
 
   test('starts in the state that init leads to', () => {
-    const { result } = web({ ...start, 'state.scrap': '' });
-    expect(result.state).toBe(start['state.scrap']);
+    const { host } = load({ ...start, 'state.scrap': '' });
+    expect(host.run({ op: 'state' })).toEqual({ state: start['state.scrap'] });
   });
 
   test('runs the app as the page does', () => {
-    let { result, drafts } = web(start);
-    expect(find(result.view, (e) => e.tag === 'h1')).toEqual({
+    let { host, res } = load(start);
+    expect(find(res.view!, (e) => e.tag === 'h1')).toEqual({
       tag: 'h1',
       children: ['Todos'],
     });
 
     // Cross off the first todo.
-    const item = find(result.view, (e) => e.tag === 'span')!;
-    expect(item.on!.click).toEqual({ message: '#toggle 1' });
-    ({ result, drafts } = web(drafts, item.on!.click));
-    expect(result.message).toBe('#toggle 1');
-    expect(find(result.view, (e) => e.tag === 'li')!.attrs).toEqual({
+    res = send(host, res, find(res.view!, (e) => e.tag === 'span')!, 'click');
+    expect(res.steps).toEqual([{ step: 1, message: '#toggle 1' }]);
+    expect(find(res.view!, (e) => e.tag === 'li')!.attrs).toEqual({
       class: 'done',
     });
 
     // Type a todo, and add it.
-    const input = find(result.view, (e) => e.tag === 'input')!;
+    const input = find(res.view!, (e) => e.tag === 'input')!;
     expect(input.on!.input.value).toBe(true);
-    ({ result, drafts } = web(drafts, {
-      message: input.on!.input.message,
-      input: 'Buy "milk"',
-    }));
-    expect(result.message).toBe('#edit "Buy \\"milk\\""');
-    const form = find(result.view, (e) => e.tag === 'form')!;
-    ({ result, drafts } = web(drafts, form.on!.submit));
-    expect(result.state).toBe(
+    res = send(host, res, input, 'input', 'Buy "milk"');
+    expect(res.steps).toEqual([{ step: 2, message: '#edit "Buy \\"milk\\""' }]);
+    res = send(host, res, find(res.view!, (e) => e.tag === 'form')!, 'submit');
+    expect(text(find(res.view!, (e) => e.tag === 'ul')!)).toBe(
+      'Write a scrap×Click me to cross me off×Buy "milk"×'
+    );
+    expect(text(find(res.view!, (e) => e.attrs?.class === 'left')!)).toBe(
+      '2 left'
+    );
+    const { state } = host.run({ op: 'state' });
+    expect(state).toBe(
       '{ draft = "", next = 4, todos = [ ' +
         '{ done = #true, id = 1, text = "Write a scrap" }, ' +
         '{ done = #false, id = 2, text = "Click me to cross me off" }, ' +
         '{ done = #false, id = 3, text = "Buy \\"milk\\"" } ] }'
     );
-    expect(text(find(result.view, (e) => e.tag === 'ul')!)).toBe(
-      'Write a scrap×Click me to cross me off×Buy "milk"×'
-    );
-    expect(text(find(result.view, (e) => e.attrs?.class === 'left')!)).toBe(
+
+    // A new version of the app starts from the state.
+    const changed = start['main.scrap'].replace('"Todos"', '"Things"');
+    ({ host, res } = load({ ...start, 'main.scrap': changed, 'state.scrap': state! }));
+    expect(text(find(res.view!, (e) => e.tag === 'h1')!)).toBe('Things');
+    expect(text(find(res.view!, (e) => e.attrs?.class === 'left')!)).toBe(
       '2 left'
     );
   });
@@ -132,7 +144,7 @@ describe('web playground', () => {
       ['list', '-m', '-f', '{{.Dir}}', 'github.com/Victorystick/scrapscript'],
       { encoding: 'utf8' }
     ).stdout.trim();
-    const iface = readFileSync(join(dir, 'cmd/scrap-wasm/web.scrap'), 'utf8');
+    const iface = readFileSync(join(dir, 'cmd/example/scrap-web/app.scrap'), 'utf8');
     const shown = page.match(/<details>[\s\S]*<pre><code>([\s\S]*?)<\/code><\/pre>/)!;
     expect(unescape(shown[1])).toBe(iface.trimEnd());
   });

@@ -23,7 +23,7 @@
     <nav><a href="/">Scrapyard</a> · <a href="/tutorial">Tutorial</a> · <a href="/play">Playground</a></nav>
     <h1>Web playground</h1>
     <p>Build a little website with scraps, in the Elm architecture. <code>main.scrap</code> is the app: the model to start with, <code>init</code>, the <code>update</code> of the model with each message that the site sends, and the <code>view</code> of the model that the site shows.</p>
-    <p>Each editor holds a draft, which refers to others by path, as <code>$"./html.scrap"</code>. After each update, <code>state.scrap</code> holds the model, as a scrap: edit any draft, or the state itself, and the site keeps its state. The address bar keeps every draft, to share.</p>
+    <p>Each editor holds a draft, which refers to others by path, as <code>$"./html.scrap"</code>. Once the updates settle, <code>state.scrap</code> holds the model, as a scrap: edit any draft, or the state itself, and the site keeps its state. The address bar keeps every draft, to share.</p>
   </header>
 
   <main class="workspace">
@@ -51,7 +51,7 @@
     , h.button [] [h.text "Add"]
     ]
   , h.ul [] (list/map item m.todos)
-  , h.p [h.class "left"] [h.text (int/to-text (list/length (keep (t -&gt; not t.done) m.todos)) ++ " left")]
+  , h.p [h.class "left"] [h.text (int/to-text (left m.todos) ++ " left")]
   ]
 ; item = t -&gt; h.li [h.class (t.done |&gt; | #true -&gt; "done" | #false -&gt; "")]
   [ h.span [h.on-click (#toggle t.id)] [h.text t.text]
@@ -60,6 +60,7 @@
 
 ; is = id -&gt; t -&gt; int/cmp id t.id |&gt; | #eq -&gt; #true | _ -&gt; #false
 ; not = | #true -&gt; #false | #false -&gt; #true
+; left = list/fold 0 (n -&gt; t -&gt; t.done |&gt; | #true -&gt; n | #false -&gt; n + 1)
 ; keep = f -&gt; list/fold [] (kept -&gt; t -&gt; f t |&gt; | #true -&gt; kept +&lt; t | #false -&gt; kept)
 ; h = $"./html.scrap"</code></pre>
       </div>

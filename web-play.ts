@@ -1,12 +1,14 @@
 /// <reference lib="dom" />
-// The web playground: drafts of a little website, which scrap-wasm.wasm runs
-// as an app of the web platform, in the Elm architecture. main.scrap is the
-// app, which the page shows in a sandboxed frame. Each message that the site
-// sends updates the app's model, which state.scrap then holds, as a scrap,
-// for the next update to start from. So editing any draft keeps the state,
-// and the address bar keeps the drafts, the state among them.
-import { button, editable, highlight, Runner, runKeys, show } from './runner.ts';
-import type { Handler, View, WasmResult } from './scrap-wasm.ts';
+// The web playground: drafts of a little website, which scrap-web.wasm runs
+// as an app of the web platform, in the Elm architecture, in a Web Worker
+// (web-worker.ts). main.scrap is the app, which the page shows in a
+// sandboxed frame, and sends the events of back to the host, which keeps the
+// app and its model. Once the updates settle, the page asks the host for the
+// model, as a scrap, and keeps it in state.scrap, which the host loads a
+// changed app with. So editing any draft keeps the state, and the address
+// bar keeps the drafts, the state among them.
+import { button, editable, highlight, Runner, runKeys, scrapRunner, show } from './runner.ts';
+import type { Handler, Step, View, WebEvent, WebRequest, WebResponse } from './scrap-web.ts';
 
 // The draft that is the app, and the draft that holds its model.
 const app = 'main.scrap';
@@ -15,8 +17,10 @@ const state = 'state.scrap';
 // What drafts may be named: a draft refers to another as $"./name.scrap".
 const draftName = /^[\w-]+\.scrap$/;
 
-// How long after an edit the site reloads.
+// How long after an edit the site reloads, and after an update the page
+// asks for the model.
 const delay = 400;
+const settle = 300;
 
 interface Draft {
   name: string;
@@ -25,7 +29,12 @@ interface Draft {
   rehighlight: () => Promise<void>;
 }
 
-const runner = new Runner();
+// The runner of scraps highlights and evaluates drafts; the host runs the
+// app.
+const runner = scrapRunner();
+const host = new Runner<WebRequest, WebResponse>(
+  () => new Worker(new URL('./web-worker.ts', import.meta.url), { type: 'module' })
+);
 const drafts: Draft[] = [];
 const list = document.querySelector<HTMLElement>('.drafts')!;
 const site = document.querySelector<HTMLElement>('.site')!;
@@ -78,7 +87,7 @@ function draft(name: string, source: string | null, pane?: HTMLElement) {
   if (name === app || name === state) {
     const role = document.createElement('span');
     role.className = 'role';
-    role.textContent = name === app ? 'the app' : 'its model, after each update';
+    role.textContent = name === app ? 'the app' : 'its model, once updates settle';
     head.append(role);
   }
   const result = document.createElement('pre');
@@ -126,53 +135,122 @@ const newDraft = button('New draft', () => {
 newDraft.className = 'new-draft';
 list.append(newDraft);
 
+// The generation of the last view, whether the host has the app, whether
+// state.scrap holds its model, and whether state.scrap was edited since the
+// app was last loaded, which the next load starts from.
+let generation = 0;
+let loaded = false;
+let synced = true;
+let stateEdited = false;
+
+// The page asks the host one thing at a time.
+let queue = Promise.resolve();
+function enqueue(task: () => Promise<void>) {
+  queue = queue.then(task);
+}
+
 // The site reloads a while after the last edit, and keeps its state.
 let timer: ReturnType<typeof setTimeout> | undefined;
 function edited(d: Draft) {
   d.pane.querySelector('pre.out')!.classList.add('stale');
   out.classList.add('stale');
+  if (d.name === state) stateEdited = true;
   clearTimeout(timer);
   timer = setTimeout(reload, delay);
 }
 
 function reload() {
   clearTimeout(timer);
-  enqueue(() => step());
+  enqueue(() => load());
 }
 
-// Steps run one after another, each from the state that the last left.
-let queue = Promise.resolve();
-function enqueue(step: () => Promise<void>) {
-  queue = queue.then(step);
-}
-
-interface Message {
-  message: string;
-  input?: string;
-}
-
-// step runs the app with the state, or its init if the state is blank, and
-// the message that the site sent, if any, and shows its view.
-async function step(event?: Message) {
+// load loads the app, with the model that the host has, unless state.scrap
+// was edited, or its init if state.scrap is blank. If it fails, the host
+// keeps the app it has. It clears the last error, unless asked not to.
+async function load(clear = true) {
+  if (!stateEdited && loaded) await sync();
+  stateEdited = false;
   save();
   const blank = !find(state)?.code.textContent!.trim();
-  const result: WasmResult = await runner.run({
-    command: 'web',
+  const res = await host.run({
+    op: 'load',
     source: path(app),
     drafts: sources(),
     state: blank ? undefined : path(state),
-    ...event,
+    generation: generation + 1,
   });
-  if (!('view' in result)) {
-    if (event) post({ reply: true });
-    show(out, result);
+  if (!res.view) {
+    show(out, { error: res.error ?? 'The host failed to load the app.' });
     return;
   }
-  out.replaceChildren();
+  loaded = true;
+  synced = !blank;
+  log.replaceChildren();
+  shown(res);
+  if (clear) out.replaceChildren();
+  if (blank) await sync();
+}
+
+// The events that the site sent, which the host takes together once it is
+// free, and draws one view for, as Elm draws once per frame.
+let events: WebEvent[] = [];
+function send(event: WebEvent) {
+  events.push(event);
+  enqueue(flush);
+}
+
+async function flush() {
+  if (events.length == 0) return;
+  const batch = events;
+  events = [];
+  const res = await host.run({ op: 'send', events: batch });
+  post({ reply: batch.length });
+  if (res.unloaded) return lost();
+  for (const step of res.steps ?? []) record(step);
+  if (res.view) shown(res);
+  if (res.error) show(out, { error: res.error });
+  else if (res.view) out.replaceChildren();
+  if (res.steps?.length) settled();
+}
+
+// lost loads the app again, from state.scrap, as the host lost it.
+async function lost() {
+  loaded = false;
+  stateEdited = true;
+  await load();
+}
+// A host that runs too long is stopped, and loses its app, which the page
+// loads again, keeping the error.
+host.stopped = () => {
+  loaded = false;
+  stateEdited = true;
+  enqueue(() => load(false));
+};
+
+// shown shows a view that the host answered with.
+function shown(res: WebResponse) {
+  generation = res.generation!;
+  post({ view: res.view, generation });
   out.classList.remove('stale');
-  setState(result.state);
-  post({ view: result.view, reply: !!event });
-  if (event) record(result.message!, result.state);
+}
+
+// Once updates settle, the page asks for the model, to keep it.
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+function settled() {
+  synced = false;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => enqueue(sync), settle);
+}
+
+// sync makes state.scrap hold the host's model, unless it was edited since.
+async function sync() {
+  clearTimeout(syncTimer);
+  if (synced || stateEdited) return;
+  const res = await host.run({ op: 'state' });
+  if (res.unloaded) return lost();
+  if (res.state == null) return;
+  setState(res.state);
+  synced = true;
   save();
 }
 
@@ -189,18 +267,24 @@ function setState(source: string) {
   }
 }
 
-// record notes the message that the site sent in the history, with the
-// state it led to, which clicking it goes back to.
-function record(message: string, model: string) {
+// record notes a step in the history, which clicking goes back to.
+function record({ step, message }: Step) {
   const entry = document.createElement('li');
-  entry.append(
-    button(message, () => {
-      setState(model);
-      reload();
-    })
-  );
+  entry.append(button(message, () => enqueue(() => goTo(step))));
   log.prepend(entry);
   while (log.childElementCount > 100) log.lastElementChild!.remove();
+}
+
+async function goTo(step: number) {
+  const res = await host.run({ op: 'goto', step });
+  if (res.unloaded) return lost();
+  if (!res.view) {
+    show(out, { error: res.error! });
+    return;
+  }
+  shown(res);
+  out.replaceChildren();
+  settled();
 }
 
 // save keeps the drafts in the address bar, to share.
@@ -222,39 +306,46 @@ function shared(): Record<string, string> | null {
 }
 
 // The site runs in a frame of its own origin, which can't touch the page.
-// The page posts it each view to show, and it posts each message back.
-let shown: unknown = null;
-function post(data: { view?: View; reply: boolean }) {
-  if ('view' in data) shown = data.view;
+// The page posts it each view to show, with its generation, and the number
+// of events it sent that the host has taken, and it posts each event back.
+let last: { view?: View; generation: number } | null = null;
+function post(data: { view?: View; generation?: number; reply?: number }) {
+  if (data.view) last = { view: data.view, generation: data.generation! };
   frame.contentWindow?.postMessage(data, '*');
 }
 frame.addEventListener('load', () => {
-  if (shown != null) post({ view: shown as View, reply: false });
+  if (last) post(last);
 });
 frame.srcdoc = `<!doctype html><meta charset="utf-8"><script>(${render})()</script>`;
 addEventListener('message', ({ source, data }) => {
-  if (source !== frame.contentWindow || typeof data?.message !== 'string') return;
-  const event: Message = { message: data.message };
-  if (typeof data.input === 'string') event.input = data.input;
-  enqueue(() => step(event));
+  if (source !== frame.contentWindow) return;
+  const { generation, handler, input } = data ?? {};
+  if (typeof generation !== 'number' || typeof handler !== 'number') return;
+  send(typeof input === 'string' ? { generation, handler, input } : { generation, handler });
 });
 
 // render runs in the frame, where it shows each view that the page posts it,
 // changing as little of the last as it can, as Elm does, so that an input
-// keeps its focus. It must refer to nothing outside itself.
+// keeps its focus, and posts the page each event that a handler handles.
+// It must refer to nothing outside itself.
 function render() {
   interface Node extends HTMLElement {
     view?: { tag: string; attrs: Record<string, string>; on: Record<string, Handler> };
     // The events that it listens for, which its view's handlers handle.
     events?: Set<string>;
   }
-  // The messages that the page has yet to reply to. Until it has, an input
-  // that has the focus keeps the value that was typed into it.
+  // The events that the host has yet to take. Until it has, an input that
+  // has the focus keeps the value that was typed into it.
   let pending = 0;
+  // The generation of the view shown, whose handlers events are of.
+  let generation = 0;
   addEventListener('message', ({ source, data }) => {
     if (source !== parent) return;
-    if (data.reply) pending--;
-    if (data.view != null) patch(document.body, 0, data.view);
+    pending -= data.reply ?? 0;
+    if (data.view != null) {
+      generation = data.generation;
+      patch(document.body, 0, data.view);
+    }
   });
   // A form would leave the page.
   addEventListener('submit', (e) => e.preventDefault());
@@ -319,7 +410,7 @@ function render() {
       if (!handler) return;
       pending++;
       const input = handler.value ? String((e.target as HTMLInputElement).value ?? '') : undefined;
-      parent.postMessage({ message: handler.message, input }, '*');
+      parent.postMessage({ generation, handler: handler.handler, input }, '*');
     });
   }
 }
@@ -341,7 +432,7 @@ actions.append(
   hint,
   button('Reset state', () => {
     setState('');
-    log.replaceChildren();
+    stateEdited = true;
     reload();
   }),
   button('Run', reload)
