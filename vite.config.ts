@@ -41,7 +41,7 @@ export default defineConfig({
     client: {
       build: {
         rollupOptions: {
-          input: ["index.html", "tutorial.html", "play.html"],
+          input: ["index.html", "tutorial.html", "play.html", "web.html"],
         },
       },
     },

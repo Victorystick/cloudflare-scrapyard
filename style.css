@@ -78,3 +78,42 @@ nav { margin-bottom: 1rem; font-size: .9rem; }
 @media (prefers-color-scheme: dark) { .out .error { color: #f2b8b5; } }
 .out .error::before { content: "✗"; }
 .out .output::before { content: "$"; }
+/* The web playground: drafts beside the site that they make. */
+body.wide { max-width: 96rem; }
+body.wide header { max-width: 46rem; }
+body.wide header p + p { margin-top: .5rem; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+/* Narrow, the site comes first, over the drafts. */
+@media (max-width: 64rem) { .workspace { grid-template-columns: minmax(0, 1fr); } .site { order: -1; } }
+@media (min-width: 64.01rem) { .site { position: sticky; top: 1rem; } }
+.workspace > section { margin: 0; min-width: 0; }
+.drafts .example:first-child { margin-top: 0; }
+.draft:not(.live)::before {
+  content: attr(data-draft); display: block; padding: .3rem .5rem; background: var(--code-bg);
+  font: .8rem ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 6px 6px 0 0;
+}
+.draft-head { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem; background: var(--code-bg); font-size: .8rem; color: var(--muted); }
+.draft-head input {
+  flex: 1; min-width: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--fg); background: none; border: none; padding: 0;
+}
+.draft-head input:not([readonly]):hover, .draft-head input:focus { text-decoration: underline; outline: none; }
+.draft-head .role { color: var(--accent); }
+.draft-head button, .new-draft, .history button {
+  font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line);
+  border-radius: 4px; padding: .1rem .6rem; cursor: pointer;
+}
+.new-draft { font-size: .9rem; }
+.draft pre:not(.out) { white-space: pre-wrap; overflow-wrap: anywhere; }
+.draft [contenteditable] { min-height: 3rem; }
+.site iframe { display: block; width: 100%; height: 32rem; background: #fff; }
+@media (max-width: 64rem) { .site iframe { height: 24rem; } }
+.history { margin: 0; padding: 0; list-style: none; max-height: 10rem; overflow-y: auto; font-size: .8rem; }
+.history:empty::before { content: "The messages that the site sends show here, latest first. Click one to go back to the state it led to."; color: var(--muted); }
+.history li + li { margin-top: .25rem; }
+.history button {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.site details { margin-top: 1rem; font-size: .9rem; }
+.site summary { cursor: pointer; color: var(--muted); }

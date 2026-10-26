@@ -9,17 +9,46 @@ export interface WasmRequest {
   // What to do with source if it checks, as the commands of the scrap CLI
   // do: only check it (the default), evaluate it, or run its tests. Or
   // "highlight" it, which needn't even parse: its ranges by tree-sitter
-  // capture name, as start and end offsets into source.
+  // capture name, as start and end offsets into source. Or run it as an
+  // app of the web platform: "web" (see web-play.ts).
   command?: Command;
+  // The drafts that source and the drafts refer to by path, $"./a.scrap",
+  // by path.
+  drafts?: Record<string, string>;
+  // What "web" runs the app with: a scrap of its model, else its init, and
+  // of a message to update the model with first, or of a function of the
+  // input to make it.
+  state?: string;
+  message?: string;
+  input?: string;
 }
 
-export type Command = 'type' | 'eval' | 'test' | 'highlight';
+export type Command = 'type' | 'eval' | 'test' | 'highlight' | 'web';
 
 export type WasmResult =
   | { type: string; value?: string; results?: TestResult[]; error?: string }
   | { error: string }
   | { highlights: Record<string, number[]> }
+  | { state: string; message?: string; view: View }
   | { missing: string[] };
+
+// The view of an app of the web platform: text, or an element.
+export type View = string | ViewElement;
+
+export interface ViewElement {
+  tag: string;
+  attrs?: Record<string, string>;
+  // The message to send on each event, as a scrap.
+  on?: Record<string, Handler>;
+  children?: View[];
+}
+
+export interface Handler {
+  message: string;
+  // Whether the message is a function of the value of the event's target,
+  // to pass as the input.
+  value?: boolean;
+}
 
 // The outcome of one case of a test scrap.
 export interface TestResult {

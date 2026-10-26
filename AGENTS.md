@@ -27,7 +27,7 @@ serves https://scraps.oseg.dev.
   `scrap-wasm.ts` runs it, with just enough of WASI for Go, in the Worker
   (`checker.ts`, which only checks), the browser and tests.
 - Everything else is a static asset (`index.html`, `tutorial.html`,
-  `play.html`, `style.css`, the link preview image `public/og.png` that
+  `play.html`, `web.html`, `style.css`, the link preview image `public/og.png` that
   their Open Graph tags name, rendered from `og-image.html`, and the
   browser's copy of `scrap-wasm.wasm`),
   built by the Cloudflare Vite plugin. A new page must be listed in
@@ -41,7 +41,15 @@ serves https://scraps.oseg.dev.
   `data-highlights` (`highlightExamples` in `vite.config.ts`, with the
   wasm `highlight` command), `repl.ts` registers them by tree-sitter
   capture name and asks the worker again as they are edited, and
-  `style.css` colours them with `::highlight()`.
+  `style.css` colours them with `::highlight()`. `runner.ts` holds what
+  `repl.ts` and `web-play.ts` share.
+- `web.html` is a playground for little websites: apps of scrap-wasm's web
+  platform (its `web` command, and the interface `web.scrap` that the page
+  shows and `web.test.ts` checks it against), in the Elm architecture.
+  `web-play.ts` edits its `.draft`s, which refer to each other by path, runs
+  `main.scrap` with them, shows the view in a sandboxed frame, and keeps the
+  model in `state.scrap` after each message that the frame sends back.
+  `web.test.ts` runs the drafts that the page starts with as it does.
 - `tutorial.html` teaches the language as the pinned `scrap` CLI implements
   it, which lags SPEC.md (no `/` or `==` yet, for instance). Each
   `.example` is a scrap with what `scrap eval` and `scrap type` print, and

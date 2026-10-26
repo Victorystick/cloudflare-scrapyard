@@ -17,6 +17,8 @@
     "**/node_modules/*",
     // These run in the browser, not the Worker.
     "repl.ts",
-    "repl-worker.ts"
+    "repl-worker.ts",
+    "runner.ts",
+    "web-play.ts"
   ]
 }

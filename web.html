@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web playground · Scrapyard</title>
+  <meta name="description" content="Build a little website with scraps, in the Elm architecture, in drafts that refer to each other, and keep its state in one of them.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Scrapyard">
+  <meta property="og:title" content="Web playground · Scrapyard">
+  <meta property="og:description" content="Build a little website with scraps, in the Elm architecture, in drafts that refer to each other, and keep its state in one of them.">
+  <meta property="og:url" content="https://scraps.oseg.dev/web">
+  <meta property="og:image" content="https://scraps.oseg.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Scrapyard: stores scraps, keyed by the SHA-256 hash of their source.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./web-play.ts"></script>
+</head>
+<body class="wide">
+  <header>
+    <nav><a href="/">Scrapyard</a> · <a href="/tutorial">Tutorial</a> · <a href="/play">Playground</a></nav>
+    <h1>Web playground</h1>
+    <p>Build a little website with scraps, in the Elm architecture. <code>main.scrap</code> is the app: the model to start with, <code>init</code>, the <code>update</code> of the model with each message that the site sends, and the <code>view</code> of the model that the site shows.</p>
+    <p>Each editor holds a draft, which refers to others by path, as <code>$"./html.scrap"</code>. After each update, <code>state.scrap</code> holds the model, as a scrap: edit any draft, or the state itself, and the site keeps its state. The address bar keeps every draft, to share.</p>
+  </header>
+
+  <main class="workspace">
+    <section class="drafts" aria-label="Drafts">
+      <div class="example draft" data-draft="main.scrap">
+<pre><code>-- A little website, in the Elm architecture: the page shows the view of the
+-- model, and each message that it sends updates the model, which
+-- state.scrap holds. Edit any draft and the site reloads, keeping its state.
+{ init, update, view }
+
+; init = { draft = "", next = 3, todos = [todo 1 "Write a scrap", todo 2 "Click me to cross me off"] }
+; todo = id -&gt; text -&gt; { id, text, done = #false }
+
+; update =
+  | #edit text -&gt; m -&gt; { ..m, draft = text }
+  | #add -&gt; m -&gt; (m.draft |&gt; | "" -&gt; m | text -&gt; { draft = "", next = m.next + 1, todos = m.todos +&lt; todo m.next text })
+  | #toggle id -&gt; m -&gt; { ..m, todos = list/map (t -&gt; is id t |&gt; | #true -&gt; { ..t, done = not t.done } | #false -&gt; t) m.todos }
+  | #remove id -&gt; m -&gt; { ..m, todos = keep (t -&gt; not (is id t)) m.todos }
+
+; view = m -&gt; h.div []
+  [ h.style $"./style.scrap"
+  , h.h1 [] [h.text "Todos"]
+  , h.form [h.on "submit" #add]
+    [ h.input [h.attr "value" m.draft, h.attr "placeholder" "What needs doing?", h.on-input (text -&gt; #edit text)]
+    , h.button [] [h.text "Add"]
+    ]
+  , h.ul [] (list/map item m.todos)
+  , h.p [h.class "left"] [h.text (int/to-text (list/length (keep (t -&gt; not t.done) m.todos)) ++ " left")]
+  ]
+; item = t -&gt; h.li [h.class (t.done |&gt; | #true -&gt; "done" | #false -&gt; "")]
+  [ h.span [h.on-click (#toggle t.id)] [h.text t.text]
+  , h.button [h.on-click (#remove t.id)] [h.text "×"]
+  ]
+
+; is = id -&gt; t -&gt; int/cmp id t.id |&gt; | #eq -&gt; #true | _ -&gt; #false
+; not = | #true -&gt; #false | #false -&gt; #true
+; keep = f -&gt; list/fold [] (kept -&gt; t -&gt; f t |&gt; | #true -&gt; kept +&lt; t | #false -&gt; kept)
+; h = $"./html.scrap"</code></pre>
+      </div>
+      <div class="example draft" data-draft="state.scrap">
+<pre><code>{ draft = "", next = 3, todos = [ { done = #false, id = 1, text = "Write a scrap" }, { done = #false, id = 2, text = "Click me to cross me off" } ] }</code></pre>
+      </div>
+      <div class="example draft" data-draft="html.scrap">
+<pre><code>-- Helpers that make views, as Elm's Html does: an element takes its
+-- attributes and its children.
+{ el, text, attr, class, on, on-click, on-input
+, div, h1, p, ul, li, span, form, button, input, style
+}
+; el = tag -&gt; attrs -&gt; children -&gt; #el { tag, attrs, children }
+; text = t -&gt; #text t
+; attr = name -&gt; value -&gt; #attr { name, value }
+; class = attr "class"
+; on = event -&gt; msg -&gt; #on { event, msg }
+; on-click = on "click"
+-- A function of the input's value makes the message.
+; on-input = msg -&gt; #on-value { event = "input", msg }
+; div = el "div"
+; h1 = el "h1"
+; p = el "p"
+; ul = el "ul"
+; li = el "li"
+; span = el "span"
+; form = el "form"
+; button = el "button"
+; input = attrs -&gt; el "input" attrs []
+; style = css -&gt; el "style" [] [text css]</code></pre>
+      </div>
+      <div class="example draft" data-draft="style.scrap">
+<pre><code>-- The site's style sheet, which main.scrap puts in a style element.
+text/join "\n"
+  [ "body { font: 16px/1.5 system-ui, sans-serif; margin: 2rem; color: #22211e; }"
+  , "h1 { margin: 0 0 1rem; }"
+  , "form { display: flex; gap: .5rem; }"
+  , "input { flex: 1; min-width: 0; font: inherit; padding: .3rem .5rem; }"
+  , "button { font: inherit; cursor: pointer; }"
+  , "ul { padding: 0; list-style: none; }"
+  , "li { display: flex; justify-content: space-between; padding: .3rem 0; border-bottom: 1px solid #e2e0d8; }"
+  , "li span { cursor: pointer; }"
+  , "li.done span { text-decoration: line-through; color: #6b6960; }"
+  , ".left { color: #6b6960; }"
+  ]</code></pre>
+      </div>
+    </section>
+
+    <section class="site" aria-label="The site">
+      <div class="example">
+        <iframe sandbox="allow-scripts allow-forms" title="The site"></iframe>
+        <div class="actions"></div>
+        <pre class="out"></pre>
+      </div>
+      <noscript><p>The playground needs JavaScript.</p></noscript>
+      <h3>Messages</h3>
+      <ol class="history" aria-label="The messages that the site sent, latest first"></ol>
+      <details>
+        <summary>The type of an app</summary>
+        <p>An app has the type <code>app model msg</code>, for a model and messages of its choosing. A view is text, or an element with attributes, handlers of events that send a message, or a function of the value of the event's target that makes one, as an input's, and children.</p>
+<pre><code>-- The web platform's contract: an app in the Elm architecture.
+--
+-- An app keeps its own model, of type model, which the host never inspects.
+-- The host shows the page that `view` makes of the model, starting with
+-- `init`, and passes `update` each message that the page sends, with the
+-- model, for the next one.
+
+app
+
+; app   : type -&gt; type -&gt; type = model =&gt; msg =&gt; { init : model, update : msg -&gt; model -&gt; model, view : model -&gt; html msg }
+; html  : type -&gt; type = msg =&gt; [#text text, #el { tag : text, attrs : list (attr msg), children : list (html msg) }]
+; attr  : type -&gt; type = msg =&gt; [#attr { name : text, value : text }, #on { event : text, msg : msg }, #on-value { event : text, msg : text -&gt; msg }]</code></pre>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
