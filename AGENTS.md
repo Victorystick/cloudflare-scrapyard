@@ -50,10 +50,12 @@ serves https://scraps.oseg.dev.
   builds `scrap-wasm.wasm`; `scrap-web.ts` has its requests. `web-play.ts`
   edits the page's `.draft`s, which refer to each other by path, and has
   `web-worker.ts` load `main.scrap` with them into the host, which keeps the
-  app and its model. The page shows the view in a sandboxed frame, sends the
-  host the events that it posts back, and once the updates settle, asks for
-  the model and keeps it in `state.scrap`, which it loads a changed app
-  with. `web.test.ts` runs the page's drafts as it does, and checks that the
+  app, its model and its view. The page applies the host's patches of the
+  view in a sandboxed frame, sends the host the events that it posts back,
+  and keeps the messages that they led to, which it loads a changed app
+  with, from the state it started from, so that the host replays them. Once
+  the updates settle, it asks for the model and shows it in `state.scrap`.
+  `web.test.ts` runs the page's drafts as it does, and checks that the
   interface that the page shows is the host's `app.scrap`.
 - `wasm-worker.ts` runs the requests of `repl-worker.ts` and `web-worker.ts`
   in their modules, fetching the scraps that they lack from the yard, and

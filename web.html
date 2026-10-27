@@ -23,7 +23,7 @@
     <nav><a href="/">Scrapyard</a> · <a href="/tutorial">Tutorial</a> · <a href="/play">Playground</a></nav>
     <h1>Web playground</h1>
     <p>Build a little website with scraps, in the Elm architecture. <code>main.scrap</code> is the app: the model to start with, <code>init</code>, the <code>update</code> of the model with each message that the site sends, and the <code>view</code> of the model that the site shows.</p>
-    <p>Each editor holds a draft, which refers to others by path, as <code>$"./html.scrap"</code>. Once the updates settle, <code>state.scrap</code> holds the model, as a scrap: edit any draft, or the state itself, and the site keeps its state. The address bar keeps every draft, to share.</p>
+    <p>Each editor holds a draft, which refers to others by path, as <code>$"./html.scrap"</code>. The page keeps the messages that the site sends, and replays them when you edit a draft, as Elm's debugger does: edit <code>update</code>, and the model that they lead to changes with it. Once the updates settle, <code>state.scrap</code> shows the model, as a scrap: edit it, and the site starts from it. The address bar keeps every draft, to share.</p>
   </header>
 
   <main class="workspace">
@@ -31,7 +31,8 @@
       <div class="example draft" data-draft="main.scrap">
 <pre><code>-- A little website, in the Elm architecture: the page shows the view of the
 -- model, and each message that it sends updates the model, which
--- state.scrap holds. Edit any draft and the site reloads, keeping its state.
+-- state.scrap shows. Edit any draft and the site reloads, replaying the
+-- messages.
 { init, update, view }
 
 ; init = { draft = "", next = 3, todos = [todo 1 "Write a scrap", todo 2 "Click me to cross me off"] }
@@ -53,7 +54,8 @@
   , h.ul [] (list/map item m.todos)
   , h.p [h.class "left"] [h.text (int/to-text (left m.todos) ++ " left")]
   ]
-; item = t -&gt; h.li [h.class (t.done |&gt; | #true -&gt; "done" | #false -&gt; "")]
+-- A key keeps an item's element its own as items come and go.
+; item = t -&gt; h.li [h.key (int/to-text t.id), h.class (t.done |&gt; | #true -&gt; "done" | #false -&gt; "")]
   [ h.span [h.on-click (#toggle t.id)] [h.text t.text]
   , h.button [h.on-click (#remove t.id)] [h.text "×"]
   ]
@@ -70,13 +72,16 @@
       <div class="example draft" data-draft="html.scrap">
 <pre><code>-- Helpers that make views, as Elm's Html does: an element takes its
 -- attributes and its children.
-{ el, text, attr, class, on, on-click, on-input
+{ el, text, attr, class, key, on, on-click, on-input
 , div, h1, p, ul, li, span, form, button, input, style
 }
 ; el = tag -&gt; attrs -&gt; children -&gt; #el { tag, attrs, children }
 ; text = t -&gt; #text t
 ; attr = name -&gt; value -&gt; #attr { name, value }
 ; class = attr "class"
+-- An element's key among its siblings, which the host matches it by from
+-- one view to the next, rather than by order.
+; key = attr "key"
 ; on = event -&gt; msg -&gt; #on { event, msg }
 ; on-click = on "click"
 -- A function of the input's value makes the message.
