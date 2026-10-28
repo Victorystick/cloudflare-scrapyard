@@ -51,3 +51,5 @@ serves https://scraps.oseg.dev.
   CLI prints.
 - `npm run dev` serves locally, `npm test` builds and tests, and
   `npx wrangler types` generates `worker-configuration.d.ts`.
+- Never put links to agentic coding sessions (such as claude.ai/code
+  session URLs) in PR descriptions.
