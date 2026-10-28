@@ -18,7 +18,8 @@ serves https://scraps.oseg.dev.
   hashes.
 - `GET /<sha256>` lets caches keep a scrap forever (`immutable`), as its
   hash names it, and varies by `Accept`. A 404 stays uncached, since the
-  scrap may be pushed later.
+  scrap may be pushed later. Both let https://victorystick.github.io read
+  them (CORS), where the playground and tutorial will move.
 - `scrap-wasm.wasm` is the scrap tool as WebAssembly, which checks and
   evaluates scraps. `npm run build` builds it from `cmd/scrap-wasm` in the
   scrapscript repository at the version that `go.mod` pins, so building
