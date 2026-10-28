@@ -4,6 +4,11 @@ import { isSha256String, toSha256String } from './sha256.ts';
 // The most scraps that a scrap may refer to, directly or not.
 const maxImports = 256;
 
+// The playground and tutorial on GitHub Pages fetch scraps from the yard.
+// CORS names an origin, not a path, so this lets any of the account's
+// Pages read them, which is harmless as scraps are public anyway.
+const pagesOrigin = 'https://victorystick.github.io';
+
 const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 export default {
@@ -38,7 +43,10 @@ export default {
 
           const stream = await env.scraps.get(key, 'stream');
           if (stream == null) {
-            return new Response('No scrap with sha256:' + key, { status: 404 });
+            return new Response('No scrap with sha256:' + key, {
+              status: 404,
+              headers: { 'Access-Control-Allow-Origin': pagesOrigin },
+            });
           }
 
           const requestedScraps = request.headers
@@ -56,6 +64,7 @@ export default {
               // long as they like. Not so a 404: the scrap may be pushed.
               'Cache-Control': 'public, max-age=31536000, immutable',
               Vary: 'Accept',
+              'Access-Control-Allow-Origin': pagesOrigin,
             },
           });
         }

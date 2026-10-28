@@ -78,6 +78,24 @@ describe('worker', () => {
     expect(response.headers.get('Vary')).toBe('Accept');
   });
 
+  test('read lets the GitHub Pages site fetch scraps', async () => {
+    const bindings = await worker.getBindings<{ scraps: any }>();
+
+    const data = new TextEncoder().encode('1 + 2');
+    const key = await toSha256String(data.buffer);
+    await bindings.scraps.put(key, data.buffer);
+
+    const origin = 'https://victorystick.github.io';
+    let response = await worker.dispatchFetch('http://example.com/' + key);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+
+    // The playground tells a missing scrap from a failure by its status.
+    const missing = await toSha256String(new TextEncoder().encode('2 + 3').buffer);
+    response = await worker.dispatchFetch('http://example.com/' + missing);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+  });
+
   test('read a scrap the yard lacks, which caches must not keep', async () => {
     const key = await toSha256String(new TextEncoder().encode('2 + 3').buffer);
 
