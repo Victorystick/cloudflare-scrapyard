@@ -26,9 +26,13 @@ export default {
           }
 
           const data = await request.arrayBuffer();
+          const key = await toSha256String(data);
+          // The yard checked a scrap it has when it was first pushed.
+          if ((await env.scraps.get(key, 'arrayBuffer')) != null) {
+            return new Response(key, { status: 200 });
+          }
           const rejection = await typeCheck(data, env.scraps);
           if (rejection) return rejection;
-          const key = await toSha256String(data);
           await env.scraps.put(key, data);
           return new Response(key, { status: 200 });
         }
