@@ -37,7 +37,7 @@ export default {
           const rejection = await typeCheck(data, env.scraps);
           if (rejection) return rejection;
           await env.scraps.put(key, data);
-          return new Response(key, { status: 200 });
+          return new Response(key, { status: 201 });
         }
 
         case 'GET': {

@@ -15,11 +15,12 @@ serves https://scraps.oseg.dev.
 - The Worker only handles `GET /<sha256>` and `POST /`. `POST /` stores only
   scraps that type check, against the scraps they refer to by hash, which
   must be in the yard: else 422 with the error, or 424 with the missing
-  hashes. On success it answers 200 with the scrap's hash, which the
-  `scrap` CLI requires. Pushing a scrap the yard has already succeeds
-  just the same, as its hash names the same source: pushes are
-  idempotent, never a 409. The yard then neither checks nor writes it
-  again, which spares KV's write quota.
+  hashes. On success it answers 201 with the scrap's hash. Pushing a
+  scrap the yard has already succeeds too, with 200 and its hash, as
+  its hash names the same source: pushes are idempotent, never a 409.
+  The yard then neither checks nor writes it again, which spares KV's
+  write quota. The `scrap` CLI accepts 201 since Victorystick/scrapscript#21;
+  older ones report an error on it, though the scrap is stored.
 - `GET /<sha256>` lets caches keep a scrap forever (`immutable`), as its
   hash names it, and varies by `Accept`. A 404 stays uncached, since the
   scrap may be pushed later. Both let https://victorystick.github.io read
