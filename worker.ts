@@ -27,8 +27,11 @@ export default {
 
           const data = await request.arrayBuffer();
           const key = await toSha256String(data);
-          // The yard checked a scrap it has when it was first pushed.
-          if ((await env.scraps.get(key, 'arrayBuffer')) != null) {
+          // The yard checked a scrap it has when it was first pushed. Ask
+          // for a stream, as scraps have no size limit, and leave it unread.
+          const stored = await env.scraps.get(key, 'stream');
+          if (stored != null) {
+            await stored.cancel();
             return new Response(key, { status: 200 });
           }
           const rejection = await typeCheck(data, env.scraps);
