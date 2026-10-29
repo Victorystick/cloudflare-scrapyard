@@ -132,6 +132,16 @@ describe('worker', () => {
     ).toEqual(data);
   });
 
+  test('write a scrap the yard has already', async () => {
+    const data = new TextEncoder().encode('1 + 2');
+    const first = await push(data);
+    const again = await push(data);
+
+    // Its hash names the same source, so pushing it again succeeds alike.
+    expect(again.status).toBe(200);
+    expect(await again.text()).toBe(await first.text());
+  });
+
   test('write a scrap that does not type check', async () => {
     const bindings = await worker.getBindings<{ scraps: any }>();
 
