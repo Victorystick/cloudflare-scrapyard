@@ -132,6 +132,29 @@ describe('worker', () => {
     ).toEqual(data);
   });
 
+  test('write a scrap the yard has already', async () => {
+    const data = new TextEncoder().encode('1 + 2');
+    const first = await push(data);
+    const again = await push(data);
+
+    // Its hash names the same source, so pushing it again succeeds alike.
+    expect(again.status).toBe(200);
+    expect(await again.text()).toBe(await first.text());
+  });
+
+  test('write a scrap the yard has skips the check', async () => {
+    const bindings = await worker.getBindings<{ scraps: any }>();
+
+    // Not a scrap that would pass, so a 200 shows the yard did not check it.
+    const data = new Uint8Array([1, 2, 3]);
+    const key = await toSha256String(data.buffer);
+    await bindings.scraps.put(key, data.buffer);
+
+    const response = await push(data);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe(key);
+  });
+
   test('write a scrap that does not type check', async () => {
     const bindings = await worker.getBindings<{ scraps: any }>();
 
