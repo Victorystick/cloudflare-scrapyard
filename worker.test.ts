@@ -125,7 +125,7 @@ describe('worker', () => {
     const response = await push(data);
     const key = await response.text();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(key).toBe(await toSha256String(data.buffer));
     expect(
       new Uint8Array(await bindings.scraps.get(key, 'arrayBuffer'))
@@ -137,7 +137,9 @@ describe('worker', () => {
     const first = await push(data);
     const again = await push(data);
 
-    // Its hash names the same source, so pushing it again succeeds alike.
+    // Its hash names the same source, so pushing it again succeeds alike,
+    // though the yard stores nothing new.
+    expect(first.status).toBe(201);
     expect(again.status).toBe(200);
     expect(await again.text()).toBe(await first.text());
   });
@@ -205,7 +207,7 @@ describe('worker', () => {
     const useKey = await (await push(use)).text();
 
     let response = await push(enc.encode(`$source:${useKey} 1`));
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
 
     // The check reaches through the scraps it refers to.
     response = await push(enc.encode(`$source:${useKey} "a"`));
